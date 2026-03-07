@@ -42,10 +42,9 @@
 
       .date-title{font-size:18px;font-weight:700;margin:2px 0 10px}
       .slots{display:flex;flex-direction:column;gap:8px}
-      .slot-row{display:grid;grid-template-columns:1fr auto;gap:8px}
-      .slot{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:center}
+      .slot-row{display:block}
+      .slot{width:100%;border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:center}
       .slot.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-      .confirm-btn{padding:10px 14px;border-radius:10px;border:none;background:#3563f6;color:#fff;font-weight:600;cursor:pointer}
 
       label{display:block;margin:10px 0 6px;font-weight:600;font-size:14px}
       input,button{font:inherit}
@@ -69,14 +68,15 @@
     <div class="wrap">
       <div class="hero">
         <h1 id="brandTitle">Book with Shia Du</h1>
-        <p id="heroSub">Select a date & time in your timezone.</p>
+        <p id="heroSub">Choose a time in your local timezone.</p>
       </div>
 
+      <h3 class="section-title" style="margin:0 0 10px">Meeting type</h3>
       <div id="eventTypes" class="event-grid"></div>
 
       <div class="shell">
         <div class="left">
-          <h2 class="section-title">Select a Date & Time</h2>
+          <h2 class="section-title">Date</h2>
           <div class="calendar">
             <div class="cal-head">
               <h4 id="calTitle">Month YYYY</h4>
@@ -95,7 +95,7 @@
         </div>
 
         <div class="right">
-          <div id="pickedDate" class="date-title">Choose a date</div>
+          <div id="pickedDate" class="date-title">Available times</div>
           <div id="slots" class="slots"></div>
           <div id="slotStatus" class="status"></div>
 
@@ -104,7 +104,7 @@
           <label>Your email</label>
           <input id="email" class="field" type="email" placeholder="jane@email.com" />
 
-          <button id="book" class="book-btn" disabled>Book meeting</button>
+          <button id="book" class="book-btn" disabled>Schedule meeting</button>
           <button id="openEvent" class="book-btn" style="display:none;background:#fff;color:var(--text);border:1px solid var(--line)">Open calendar event</button>
           <div id="bookStatus" class="status"></div>
         </div>
@@ -205,23 +205,22 @@
         const res = await fetch(`/api/availability?date=${encodeURIComponent(els.date.value)}&duration=${duration}&viewerTimezone=${encodeURIComponent(viewerTimeZone)}`);
         const data = await res.json();
         if(!res.ok){ return setStatus(els.slotStatus,data.error||'Could not load slots.',false); }
-        if(!data.slots?.length){ return setStatus(els.slotStatus,'No slots available for selected date.',false); }
+        if(!data.slots?.length){ return setStatus(els.slotStatus,'No times available on this date. Try another day.',false); }
 
         data.slots.forEach(s=>{
           const row = document.createElement('div'); row.className='slot-row';
           const btn = document.createElement('button'); btn.type='button'; btn.className='slot'; btn.textContent=formatRange(s.start,s.end);
-          const confirm = document.createElement('button'); confirm.type='button'; confirm.className='confirm-btn'; confirm.textContent='Confirm'; confirm.style.display='none';
           btn.onclick=()=>{
             document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));
-            document.querySelectorAll('.confirm-btn').forEach(x=>x.style.display='none');
-            btn.classList.add('active'); confirm.style.display='block';
+            btn.classList.add('active');
             selectedIso=s.start; updateBookEnabled();
+            setStatus(els.slotStatus,'Time selected. Complete your details and click Schedule meeting.',true);
+            els.name.focus();
           };
-          confirm.onclick=()=>{ els.name.focus(); };
-          row.append(btn,confirm);
+          row.append(btn);
           els.slots.appendChild(row);
         });
-        setStatus(els.slotStatus,'Select a time, then confirm.',true);
+        setStatus(els.slotStatus,'Select a time slot.',true);
       }
 
       els.load.onclick = loadAvailability;
@@ -233,7 +232,7 @@
       els.book.onclick = async ()=>{
         const name=els.name.value.trim(), email=els.email.value.trim();
         const duration=Number((selectedEventType && selectedEventType.duration)||els.duration.value||30);
-        if(!name || !validateEmail(email) || !selectedIso){ return setStatus(els.bookStatus,'Enter valid details and choose a slot.',false); }
+        if(!name || !validateEmail(email) || !selectedIso){ return setStatus(els.bookStatus,'Please add your name, valid email, and select a time.',false); }
         setStatus(els.bookStatus,'Booking...',true); els.book.disabled=true;
 
         const res = await fetch('/api/book',{
@@ -242,7 +241,7 @@
         });
         const data = await res.json();
         if(!res.ok){ updateBookEnabled(); return setStatus(els.bookStatus,data.error||'Booking failed.',false); }
-        setStatus(els.bookStatus,'Booked successfully. Invite sent by email.',true);
+        setStatus(els.bookStatus,'You’re booked! Check your email for the calendar invite.',true);
         if(data.htmlLink){ els.openEvent.style.display='block'; els.openEvent.onclick=()=>window.open(data.htmlLink,'_blank'); }
       };
 
