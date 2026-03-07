@@ -297,8 +297,9 @@
             els.selected.value = '';
             els.slots.innerHTML = '';
             renderCalendarMonth();
-            setStatus(els.slotStatus, 'Date selected. Click “Find available times”.', true);
+            setStatus(els.slotStatus, 'Loading availability...', true);
             updateBookEnabled();
+            els.load.click();
           };
         });
       }
