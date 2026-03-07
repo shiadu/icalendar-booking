@@ -44,10 +44,16 @@
       button.secondary{background:#fff;color:var(--text);border:1px solid var(--line)}
       button:focus,input:focus,select:focus{outline:2px solid rgba(104,197,211,.5);outline-offset:1px}
 
-      .dates{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:8px}
-      .date-btn{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:left}
-      .date-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-      .date-btn.disabled{background:#f1f1f1;color:#a5a5a5;border-color:#e2e2e2;cursor:not-allowed;opacity:.9}
+      .calendar{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+      .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+      .cal-head h4{margin:0;font-size:14px;color:var(--text)}
+      .cal-nav{display:flex;gap:6px}
+      .cal-nav button{width:auto;padding:6px 10px;border-radius:8px;background:#fff;color:var(--text);border:1px solid var(--line)}
+      .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+      .cal-dow{font-size:11px;color:var(--muted);text-align:center;padding:4px 0}
+      .cal-day{padding:8px 0;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--text);text-align:center;cursor:pointer;font-size:13px}
+      .cal-day.disabled{background:#f1f1f1;color:#a5a5a5;border-color:#e2e2e2;cursor:not-allowed}
+      .cal-day.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 
       .slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}
       .slot{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:left}
@@ -92,8 +98,18 @@
           <div id="eventTypes" class="event-grid"></div>
 
           <h2 style="margin-top:16px">2) Pick date and time</h2>
-          <label>Available dates</label>
-          <div id="dateChoices" class="dates"></div>
+          <label>Pick a date</label>
+          <div class="calendar">
+            <div class="cal-head">
+              <h4 id="calTitle">Month YYYY</h4>
+              <div class="cal-nav">
+                <button id="calPrev" type="button">◀</button>
+                <button id="calNext" type="button">▶</button>
+              </div>
+            </div>
+            <div class="cal-grid" id="calDow"></div>
+            <div class="cal-grid" id="calDays"></div>
+          </div>
           <input id="date" type="hidden" />
 
           <label>Duration</label>
@@ -143,7 +159,11 @@
 
         eventTypes: document.getElementById('eventTypes'),
         date: document.getElementById('date'),
-        dateChoices: document.getElementById('dateChoices'),
+        calTitle: document.getElementById('calTitle'),
+        calDow: document.getElementById('calDow'),
+        calDays: document.getElementById('calDays'),
+        calPrev: document.getElementById('calPrev'),
+        calNext: document.getElementById('calNext'),
         duration: document.getElementById('duration'),
         load: document.getElementById('load'),
         slots: document.getElementById('slots'),
@@ -167,6 +187,8 @@
       let selectedLabel = '';
       let selectedEventType = null;
       const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local Time';
+      let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      let activeBookingDays = [2];
 
       function setStatus(el, msg, ok=true){
         el.className = 'status ' + (ok ? 'ok' : 'err');
@@ -224,48 +246,58 @@
         return `${y}-${m}-${day}`;
       }
 
-      function renderAvailableDates(bookingDays){
-        els.dateChoices.innerHTML = '';
+      function renderCalendarMonth(){
+        const y = currentMonth.getFullYear();
+        const m = currentMonth.getMonth();
+        const monthName = currentMonth.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+        els.calTitle.textContent = monthName;
+
+        const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        els.calDow.innerHTML = dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+        const first = new Date(y,m,1);
+        const startWeekday = first.getDay();
+        const daysInMonth = new Date(y,m+1,0).getDate();
         const today = new Date();
+        const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate()+1);
 
-        let firstAvailableYMD = '';
+        let html = '';
+        for(let i=0;i<startWeekday;i++) html += '<div></div>';
 
-        // Show next 21 days: available day selectable, others greyed out
-        for(let i=0; i<21; i++){
-          const dt = new Date(today);
-          dt.setDate(today.getDate()+i);
-          const isAvailable = bookingDays.includes(dt.getDay());
+        let firstSelectableYMD = '';
+        for(let day=1; day<=daysInMonth; day++){
+          const d = new Date(y,m,day);
+          const ymd = toLocalYMD(d);
+          const isBookingDay = activeBookingDays.includes(d.getDay());
+          const notPast = d >= tomorrow;
+          const isAvailable = isBookingDay && notPast;
+          const active = els.date.value === ymd;
+          if(!els.date.value && isAvailable && !firstSelectableYMD) firstSelectableYMD = ymd;
 
-          const btn = document.createElement('button');
-          btn.type='button';
-          btn.className='date-btn' + (isAvailable ? '' : ' disabled');
+          html += `<button type="button" class="cal-day ${isAvailable ? '' : 'disabled'} ${active ? 'active' : ''}" data-date="${ymd}">${day}</button>`;
+        }
 
-          const label = dt.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
-          btn.textContent = label;
+        els.calDays.innerHTML = html;
 
-          const ymd = toLocalYMD(dt);
+        if(!els.date.value && firstSelectableYMD){
+          els.date.value = firstSelectableYMD;
+          renderCalendarMonth();
+          return;
+        }
 
-          if (isAvailable && !firstAvailableYMD) {
-            firstAvailableYMD = ymd;
-            btn.classList.add('active');
-          }
-
+        els.calDays.querySelectorAll('.cal-day').forEach(btn => {
           btn.onclick = () => {
-            if (!isAvailable) return;
-            document.querySelectorAll('.date-btn').forEach(x=>x.classList.remove('active'));
-            btn.classList.add('active');
+            if(btn.classList.contains('disabled')) return;
+            const ymd = btn.getAttribute('data-date');
             els.date.value = ymd;
             selectedIso = null;
             els.selected.value = '';
             els.slots.innerHTML = '';
+            renderCalendarMonth();
             setStatus(els.slotStatus, 'Date selected. Click “Find available times”.', true);
             updateBookEnabled();
           };
-
-          els.dateChoices.appendChild(btn);
-        }
-
-        els.date.value = firstAvailableYMD;
+        });
       }
 
       function renderDurations(durations){
@@ -287,7 +319,9 @@
 
         renderDurations(config.durations || [15,20,30,45,60]);
         renderEventTypes(config.eventTypes || []);
-        renderAvailableDates(config.bookingDays || [2]);
+        const isChinaViewer = (config.chinaSchedule?.timezones || []).includes(viewerTimeZone);
+        activeBookingDays = isChinaViewer ? (config.chinaSchedule?.bookingDays || [2,3,4]) : (config.bookingDays || [2]);
+        renderCalendarMonth();
 
         // hard default to configured duration (30 by default)
         els.duration.value = String(config.defaultDuration || 30);
@@ -418,6 +452,14 @@
       els.email.addEventListener('input', updateBookEnabled);
       els.duration.addEventListener('change', () => {
         els.summaryDuration.textContent = `${els.duration.value} minutes`;
+      });
+      els.calPrev.addEventListener('click', () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()-1, 1);
+        renderCalendarMonth();
+      });
+      els.calNext.addEventListener('click', () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+1, 1);
+        renderCalendarMonth();
       });
 
       loadConfig().then(() => {
