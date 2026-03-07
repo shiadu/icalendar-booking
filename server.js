@@ -76,18 +76,8 @@ function isChinaTimezone(viewerTimezone = '') {
   ].includes(tz);
 }
 
-function getSchedule(viewerTimezone = '') {
-  if (isChinaTimezone(viewerTimezone)) {
-    return {
-      days: CHINA_BOOKING_DAYS,
-      startHour: CHINA_START_HOUR,
-      startMinute: CHINA_START_MINUTE,
-      endHour: CHINA_END_HOUR,
-      endMinute: CHINA_END_MINUTE,
-      label: 'china-special'
-    };
-  }
-
+function getSchedule(_viewerTimezone = '') {
+  // Unified schedule for all users regardless of timezone
   return {
     days: BOOKING_DAYS,
     startHour: START_HOUR,
@@ -245,14 +235,6 @@ app.get('/api/config', (_req, res) => {
     startMinute: START_MINUTE,
     endHour: END_HOUR,
     endMinute: END_MINUTE,
-    chinaSchedule: {
-      timezones: ['Asia/Shanghai','Asia/Chongqing','Asia/Harbin','Asia/Urumqi','Asia/Hong_Kong','Asia/Macau','Asia/Taipei'],
-      bookingDays: CHINA_BOOKING_DAYS,
-      startHour: CHINA_START_HOUR,
-      startMinute: CHINA_START_MINUTE,
-      endHour: CHINA_END_HOUR,
-      endMinute: CHINA_END_MINUTE
-    },
     minNoticeHours: MIN_NOTICE_HOURS,
     bufferMinutes: BUFFER_MINUTES,
     maxMeetingsPerDay: MAX_MEETINGS_PER_DAY,

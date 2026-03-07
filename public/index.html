@@ -251,8 +251,7 @@
         els.heroSub.textContent=`Choose a time in your local timezone.`;
         els.tzLabel.textContent = viewerTimeZone;
 
-        const isChina=(config.chinaSchedule?.timezones||[]).includes(viewerTimeZone);
-        activeBookingDays = isChina ? (config.chinaSchedule?.bookingDays||[2,3,4]) : (config.bookingDays||[2,3,4]);
+        activeBookingDays = config.bookingDays || [2,3,4];
 
         renderEventTypes(config.eventTypes||[]);
         renderCalendar();
