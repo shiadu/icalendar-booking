@@ -16,6 +16,7 @@ const START_HOUR = Number(process.env.BOOKING_START_HOUR || 13); // 1 PM
 const START_MINUTE = Number(process.env.BOOKING_START_MINUTE || 0);
 const END_HOUR = Number(process.env.BOOKING_END_HOUR || 18); // 6 PM
 const END_MINUTE = Number(process.env.BOOKING_END_MINUTE || 0);
+const SLOT_INTERVAL_MINUTES = Number(process.env.SLOT_INTERVAL_MINUTES || 15);
 
 // Special schedule for users in China timezones
 const CHINA_BOOKING_DAYS = (process.env.CHINA_BOOKING_DAYS || '2,3,4').split(',').map(x => Number(x.trim())).filter(x => !Number.isNaN(x));
@@ -115,7 +116,7 @@ function getDaySlots(dateStr, durationMin, schedule) {
   let cur = dayStart;
   while (isBefore(addMinutes(cur, durationMin), dayEnd) || isEqual(addMinutes(cur, durationMin), dayEnd)) {
     slots.push({ start: new Date(cur), end: addMinutes(cur, durationMin) });
-    cur = addMinutes(cur, durationMin);
+    cur = addMinutes(cur, SLOT_INTERVAL_MINUTES);
   }
   return slots;
 }
@@ -255,6 +256,7 @@ app.get('/api/config', (_req, res) => {
     minNoticeHours: MIN_NOTICE_HOURS,
     bufferMinutes: BUFFER_MINUTES,
     maxMeetingsPerDay: MAX_MEETINGS_PER_DAY,
+    slotIntervalMinutes: SLOT_INTERVAL_MINUTES,
     durations: [20, 30, 45, 60],
     defaultDuration: DEFAULT_DURATION,
     defaultEventTypeId: DEFAULT_EVENT_TYPE_ID,
