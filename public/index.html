@@ -347,8 +347,9 @@
       function formatTimeRangeForViewer(startIso, endIso){
         const start = new Date(startIso);
         const end = new Date(endIso);
-        const opts = { hour: 'numeric', minute: '2-digit' };
-        return `${start.toLocaleTimeString(undefined, opts)} - ${end.toLocaleTimeString(undefined, opts)}`;
+        const opts = { hour: 'numeric', minute: '2-digit', hour12: true };
+        const clean = (s) => s.replace(/\s?(AM|PM)$/i, '').trim();
+        return `${clean(start.toLocaleTimeString(undefined, opts))}-${clean(end.toLocaleTimeString(undefined, opts))}`;
       }
 
       async function loadAvailability(){
