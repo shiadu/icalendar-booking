@@ -68,7 +68,6 @@
     <div class="wrap">
       <div class="hero">
         <h1 id="brandTitle">Book with Shia Du</h1>
-        <p id="heroSub">Choose a time in your local timezone.</p>
       </div>
 
       <h3 class="section-title" style="margin:0 0 10px">Meeting type</h3>
@@ -117,7 +116,7 @@
 
     <script>
       const els = {
-        brandTitle: document.getElementById('brandTitle'), heroSub: document.getElementById('heroSub'),
+        brandTitle: document.getElementById('brandTitle'),
         eventTypes: document.getElementById('eventTypes'), calTitle: document.getElementById('calTitle'),
         calDow: document.getElementById('calDow'), calDays: document.getElementById('calDays'),
         calPrev: document.getElementById('calPrev'), calNext: document.getElementById('calNext'),
@@ -265,7 +264,6 @@
       async function init(){
         const res=await fetch('/api/config'); config=await res.json();
         els.brandTitle.textContent=`Book with ${config.hostName || 'Shia Du'}`;
-        els.heroSub.textContent=`Host hours: 1:00–6:00 PM ET • Times shown in your selected timezone.`;
         renderTimezonePicker();
 
         activeBookingDays = config.bookingDays || [2,3,4];
