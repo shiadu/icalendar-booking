@@ -88,8 +88,12 @@
             <div class="cal-grid" id="calDow"></div>
             <div class="cal-grid" id="calDays"></div>
             <div class="tz-row">
-              <span class="muted">Timezone</span>
+              <span class="muted">Your timezone</span>
               <select id="tzSelect" class="tz-select"></select>
+            </div>
+            <div class="tz-row" style="margin-top:6px;padding-top:0;border-top:none">
+              <span class="muted">Host timezone</span>
+              <span id="hostTz" class="muted"></span>
             </div>
           </div>
         </div>
@@ -121,7 +125,8 @@
         eventTypes: document.getElementById('eventTypes'), calTitle: document.getElementById('calTitle'),
         calDow: document.getElementById('calDow'), calDays: document.getElementById('calDays'),
         calPrev: document.getElementById('calPrev'), calNext: document.getElementById('calNext'),
-        tzSelect: document.getElementById('tzSelect'), pickedDate: document.getElementById('pickedDate'),
+        tzSelect: document.getElementById('tzSelect'),
+        hostTz: document.getElementById('hostTz'), pickedDate: document.getElementById('pickedDate'),
         date: document.getElementById('date'), duration: document.getElementById('duration'),
         slots: document.getElementById('slots'), slotStatus: document.getElementById('slotStatus'),
         name: document.getElementById('name'), email: document.getElementById('email'),
@@ -273,8 +278,9 @@
       async function init(){
         const res=await fetch('/api/config'); config=await res.json();
         els.brandTitle.textContent=`Book with ${config.hostName || 'Shia Du'}`;
-        els.heroSub.textContent=`Choose a time in your local timezone.`;
+        els.heroSub.textContent=`Your timezone (editable) • Host timezone: ${config.timezone}`;
         renderTimezonePicker();
+        els.hostTz.textContent = config.timezone || 'America/New_York';
 
         const isChina=(config.chinaSchedule?.timezones||[]).includes(viewerTimeZone);
         activeBookingDays = isChina ? (config.chinaSchedule?.bookingDays||[2,3,4]) : (config.bookingDays||[2,3,4]);
