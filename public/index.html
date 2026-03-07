@@ -30,8 +30,8 @@
       .card h2{margin:0 0 10px;font-size:18px}
       .muted{color:var(--muted)}
 
-      .event-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:50%}
-      .event{border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:#fff}
+      .event-grid{display:flex;gap:10px;max-width:50%;flex-wrap:nowrap}
+      .event{flex:1 1 0;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;background:#fff}
       .event.active{border-color:var(--primary);outline:2px solid rgba(15,23,42,.08)}
       .event .t{font-weight:700}
       .event .d{font-size:13px;color:var(--muted)}
@@ -76,10 +76,12 @@
 
       @media (max-width: 920px){
         .grid{grid-template-columns:1fr}
-        .event-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-width:100%;}
+        .event-grid{max-width:100%;flex-wrap:wrap;}
+        .event{flex:1 1 calc(50% - 10px)}
       }
       @media (max-width: 560px){
-        .event-grid{grid-template-columns:1fr;max-width:100%;}
+        .event-grid{max-width:100%;flex-wrap:wrap;}
+        .event{flex:1 1 100%}
       }
     </style>
   </head>
