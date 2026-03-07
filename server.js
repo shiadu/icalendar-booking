@@ -259,8 +259,8 @@ app.get('/api/config', (_req, res) => {
     defaultDuration: DEFAULT_DURATION,
     defaultEventTypeId: DEFAULT_EVENT_TYPE_ID,
     eventTypes: [
-      { id: 'standard', label: 'Standard Session', duration: 30, description: 'Focused discussion with actionable next steps' },
       { id: 'intro', label: 'Intro Call', duration: 20, description: 'Quick intro + goals alignment' },
+      { id: 'standard', label: 'Standard Session', duration: 30, description: 'Focused discussion with actionable next steps' },
       { id: 'consult', label: 'Consulting Session', duration: 45, description: 'Deep dive into your product/UX challenge' },
       { id: 'strategy', label: 'Strategy Session', duration: 60, description: 'Roadmap and action planning' }
     ]
