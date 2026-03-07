@@ -3,84 +3,64 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>iCalendar Booking</title>
+    <title>Book with Shia Du</title>
     <style>
       :root{
-        /* Palette aligned with xiaotongdu.com */
-        --bg:#F6F6F6;
-        --card:#FFFFFF;
-        --line:#E2E2E2;
-        --text:#3c3c3c;
-        --muted:#686868;
-        --primary:#3c3c3c;
-        --accent:#68c5d3;
-        --ok:#449d44;
-        --err:#C72A31;
+        --bg:#F6F6F6; --card:#FFFFFF; --line:#E2E2E2; --text:#3c3c3c; --muted:#686868;
+        --primary:#3c3c3c; --accent:#68c5d3; --ok:#449d44; --err:#C72A31;
       }
       *{box-sizing:border-box}
       body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);margin:0}
-      .wrap{max-width:1040px;margin:28px auto;padding:0 16px}
-      .hero{background:linear-gradient(120deg,#3c3c3c,#5755A1);color:#fff;padding:28px;border-radius:16px;margin-bottom:16px}
-      .hero h1{margin:0 0 8px;font-size:32px}
-      .hero p{margin:0;color:#F1F1F1}
-      .badge{display:inline-block;margin-top:12px;padding:8px 10px;border:1px solid rgba(255,255,255,.35);border-radius:999px;font-size:12px;background:rgba(104,197,211,.22)}
+      .wrap{max-width:1120px;margin:26px auto;padding:0 16px}
+      .hero{background:linear-gradient(120deg,#3c3c3c,#5755A1);color:#fff;padding:24px;border-radius:16px;margin-bottom:14px}
+      .hero h1{margin:0 0 6px;font-size:32px}
+      .hero p{margin:0;color:#f1f1f1}
 
-      .grid{display:grid;grid-template-columns:1.45fr 0.75fr;gap:14px}
-      .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
-      .card h2{margin:0 0 10px;font-size:18px}
-      .muted{color:var(--muted)}
-
-      .event-grid{display:flex;gap:10px;max-width:50%;flex-wrap:nowrap}
-      .event{flex:1 1 0;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;background:#fff}
+      .event-grid{display:flex;gap:10px;flex-wrap:nowrap;max-width:100%;margin-bottom:14px}
+      .event{flex:1 1 0;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;cursor:pointer;text-align:left}
       .event.active{border-color:var(--primary);outline:2px solid rgba(15,23,42,.08)}
-      .event .t{font-weight:700}
-      .event .d{font-size:13px;color:var(--muted)}
-      .event .m{font-size:12px;color:var(--accent);margin-top:6px}
+      .event .t{font-weight:700;font-size:14px}
+      .event .m{font-size:12px;color:var(--accent);margin-top:4px}
 
-      label{display:block;margin:10px 0 6px;font-weight:600;font-size:14px}
-      input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #cbd5e1;font:inherit}
-      button{background:var(--primary);color:#fff;border:none;cursor:pointer}
-      button:hover{opacity:.95}
-      button.secondary{background:#fff;color:var(--text);border:1px solid var(--line)}
-      button:focus,input:focus,select:focus{outline:2px solid rgba(104,197,211,.5);outline-offset:1px}
+      .shell{display:grid;grid-template-columns:1.3fr .9fr;gap:14px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}
+      .left,.right{background:#fff}
+      .section-title{font-size:20px;font-weight:700;margin:0 0 12px}
+      .muted{color:var(--muted)}
 
       .calendar{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
       .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-      .cal-head h4{margin:0;font-size:14px;color:var(--text)}
+      .cal-head h4{margin:0;font-size:16px}
       .cal-nav{display:flex;gap:6px}
-      .cal-nav button{width:auto;padding:6px 10px;border-radius:8px;background:#fff;color:var(--text);border:1px solid var(--line)}
+      .cal-nav button{width:auto;padding:6px 10px;border-radius:8px;background:#fff;color:var(--text);border:1px solid var(--line);cursor:pointer}
       .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
       .cal-dow{font-size:11px;color:var(--muted);text-align:center;padding:4px 0}
       .cal-day{padding:8px 0;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--text);text-align:center;cursor:pointer;font-size:13px}
       .cal-day.disabled{background:#f1f1f1;color:#a5a5a5;border-color:#e2e2e2;cursor:not-allowed}
       .cal-day.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 
-      .slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}
-      .slot{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:left}
+      .tz-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px}
+
+      .date-title{font-size:18px;font-weight:700;margin:2px 0 10px}
+      .slots{display:flex;flex-direction:column;gap:8px}
+      .slot-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+      .slot{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:center}
       .slot.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+      .confirm-btn{padding:10px 14px;border-radius:10px;border:none;background:#3563f6;color:#fff;font-weight:600;cursor:pointer}
 
+      label{display:block;margin:10px 0 6px;font-weight:600;font-size:14px}
+      input,button{font:inherit}
+      .field{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px}
+      .book-btn{width:100%;margin-top:10px;padding:11px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;cursor:pointer}
+      .book-btn[disabled]{opacity:.55;cursor:not-allowed}
       .status{margin-top:10px;font-weight:600}
-      .status.ok{color:var(--ok)}
-      .status.err{color:var(--err)}
+      .ok{color:var(--ok)} .err{color:var(--err)}
 
-      .kv{display:grid;grid-template-columns:130px 1fr;gap:8px;font-size:14px;margin:8px 0}
-      .pill{display:inline-block;background:#eef9fb;border:1px solid #B4D8E7;color:#1f7e9a;padding:4px 8px;border-radius:999px;font-size:12px;margin-right:6px}
-
-      .stepper{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
-      .step{font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted)}
-      .step.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-      .actions{display:flex;gap:8px;margin-top:8px}
-      button[disabled]{opacity:.55;cursor:not-allowed}
-      .help{margin-top:14px;padding:10px;border:1px dashed var(--line);border-radius:10px;background:#fcfcfc;color:var(--muted);font-size:13px}
-      .hidden{display:none}
-
-      @media (max-width: 920px){
-        .grid{grid-template-columns:1fr}
-        .event-grid{max-width:100%;flex-wrap:wrap;}
+      @media (max-width: 960px){
+        .shell{grid-template-columns:1fr}
+        .event-grid{flex-wrap:wrap}
         .event{flex:1 1 calc(50% - 10px)}
       }
       @media (max-width: 560px){
-        .event-grid{max-width:100%;flex-wrap:wrap;}
         .event{flex:1 1 100%}
       }
     </style>
@@ -88,23 +68,15 @@
   <body>
     <div class="wrap">
       <div class="hero">
-        <h1 id="brandTitle">Book a meeting</h1>
-        <p id="heroSub">Pick a time that works for both of us.</p>
-
-      </div>
-      <div class="stepper" id="stepper">
-        <span class="step active" id="step1">1. Meeting type</span>
-        <span class="step" id="step2">2. Date & time</span>
-        <span class="step" id="step3">3. Confirm details</span>
+        <h1 id="brandTitle">Book with Shia Du</h1>
+        <p id="heroSub">Select a date & time in your timezone.</p>
       </div>
 
-      <div class="grid">
-        <div class="card">
-          <h2>1) Choose meeting type</h2>
-          <div id="eventTypes" class="event-grid"></div>
+      <div id="eventTypes" class="event-grid"></div>
 
-          <h2 style="margin-top:16px">2) Pick date and time</h2>
-          <label>Pick a date</label>
+      <div class="shell">
+        <div class="left">
+          <h2 class="section-title">Select a Date & Time</h2>
           <div class="calendar">
             <div class="cal-head">
               <h4 id="calTitle">Month YYYY</h4>
@@ -115,363 +87,180 @@
             </div>
             <div class="cal-grid" id="calDow"></div>
             <div class="cal-grid" id="calDays"></div>
+            <div class="tz-row">
+              <span class="muted">Timezone</span>
+              <span id="tzLabel"></span>
+            </div>
           </div>
-          <input id="date" type="hidden" />
+        </div>
 
-          <input id="duration" type="hidden" />
-
-          <div class="actions">
-            <button id="load" class="hidden" aria-hidden="true" tabindex="-1">Find available times</button>
-            <button id="clearSelection" class="secondary" type="button">Clear</button>
-          </div>
+        <div class="right">
+          <div id="pickedDate" class="date-title">Choose a date</div>
           <div id="slots" class="slots"></div>
           <div id="slotStatus" class="status"></div>
-        </div>
 
-        <div class="card">
-          <h2>3) Your details</h2>
           <label>Your name</label>
-          <input id="name" placeholder="Jane Doe" />
-
+          <input id="name" class="field" placeholder="Jane Doe" />
           <label>Your email</label>
-          <input id="email" type="email" placeholder="jane@email.com" />
+          <input id="email" class="field" type="email" placeholder="jane@email.com" />
 
-          <label>Selected time</label>
-          <input id="selected" disabled placeholder="Pick a slot first" />
-
-          <div class="kv"><div>Meeting type</div><div id="summaryType" class="muted">—</div></div>
-          <div class="kv"><div>Duration</div><div id="summaryDuration" class="muted">—</div></div>
-
-          <button id="book" disabled>Book meeting</button>
-          <button id="openEvent" class="secondary hidden" type="button">Open calendar event</button>
+          <button id="book" class="book-btn" disabled>Book meeting</button>
+          <button id="openEvent" class="book-btn" style="display:none;background:#fff;color:var(--text);border:1px solid var(--line)">Open calendar event</button>
           <div id="bookStatus" class="status"></div>
-
-          <div style="margin-top:14px" class="muted">
-            <span class="pill">Invite sent automatically</span>
-            <span class="pill">Timezone-safe booking</span>
-          </div>
-          <div class="help">
-            Need help? If times don't show, choose another available date or refresh once. You can always reschedule from the calendar invite.
-          </div>
         </div>
       </div>
+
+      <input id="date" type="hidden" />
+      <input id="duration" type="hidden" />
+      <button id="load" style="display:none"></button>
     </div>
 
     <script>
       const els = {
-        brandTitle: document.getElementById('brandTitle'),
-        heroSub: document.getElementById('heroSub'),
-
-        eventTypes: document.getElementById('eventTypes'),
-        date: document.getElementById('date'),
-        calTitle: document.getElementById('calTitle'),
-        calDow: document.getElementById('calDow'),
-        calDays: document.getElementById('calDays'),
-        calPrev: document.getElementById('calPrev'),
-        calNext: document.getElementById('calNext'),
-        duration: document.getElementById('duration'),
-        load: document.getElementById('load'),
-        slots: document.getElementById('slots'),
-        slotStatus: document.getElementById('slotStatus'),
-        name: document.getElementById('name'),
-        email: document.getElementById('email'),
-        selected: document.getElementById('selected'),
-        summaryType: document.getElementById('summaryType'),
-        summaryDuration: document.getElementById('summaryDuration'),
-        book: document.getElementById('book'),
-        clearSelection: document.getElementById('clearSelection'),
-        bookStatus: document.getElementById('bookStatus'),
-        openEvent: document.getElementById('openEvent'),
-        step1: document.getElementById('step1'),
-        step2: document.getElementById('step2'),
-        step3: document.getElementById('step3')
+        brandTitle: document.getElementById('brandTitle'), heroSub: document.getElementById('heroSub'),
+        eventTypes: document.getElementById('eventTypes'), calTitle: document.getElementById('calTitle'),
+        calDow: document.getElementById('calDow'), calDays: document.getElementById('calDays'),
+        calPrev: document.getElementById('calPrev'), calNext: document.getElementById('calNext'),
+        tzLabel: document.getElementById('tzLabel'), pickedDate: document.getElementById('pickedDate'),
+        date: document.getElementById('date'), duration: document.getElementById('duration'),
+        slots: document.getElementById('slots'), slotStatus: document.getElementById('slotStatus'),
+        name: document.getElementById('name'), email: document.getElementById('email'),
+        book: document.getElementById('book'), bookStatus: document.getElementById('bookStatus'),
+        openEvent: document.getElementById('openEvent'), load: document.getElementById('load')
       };
 
-      let config = null;
-      let selectedIso = null;
-      let selectedLabel = '';
-      let selectedEventType = null;
       const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local Time';
-      let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-      let activeBookingDays = [2];
+      let config = null, currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      let activeBookingDays = [2], selectedEventType = null, selectedIso = null;
 
-      function setStatus(el, msg, ok=true){
-        el.className = 'status ' + (ok ? 'ok' : 'err');
-        el.textContent = msg;
-      }
-
-      function setStep(active){
-        [els.step1, els.step2, els.step3].forEach((s, i) => {
-          s.classList.toggle('active', i === active - 1);
-        });
-      }
-
-      function validateEmail(email){
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      }
-
-      function updateBookEnabled(){
-        const valid = !!els.name.value.trim() && validateEmail(els.email.value.trim()) && !!selectedIso;
-        els.book.disabled = !valid;
+      function toLocalYMD(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+      function validateEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+      function setStatus(el,msg,ok=true){ el.className='status '+(ok?'ok':'err'); el.textContent=msg; }
+      function updateBookEnabled(){ els.book.disabled = !(els.name.value.trim() && validateEmail(els.email.value.trim()) && selectedIso); }
+      function formatRange(startIso,endIso){
+        const opts = {hour:'numeric',minute:'2-digit',hour12:true};
+        const clean = s => s.replace(/\s?(AM|PM)$/i,'').trim();
+        return `${clean(new Date(startIso).toLocaleTimeString(undefined,opts))}-${clean(new Date(endIso).toLocaleTimeString(undefined,opts))}`;
       }
 
       function renderEventTypes(types){
-        els.eventTypes.innerHTML = '';
-        const wantedId = config?.defaultEventTypeId || 'standard';
-        const defaultIndex = Math.max(0, types.findIndex(t => t.id === wantedId));
-
-        types.forEach((t, i) => {
-          const div = document.createElement('button');
-          div.type = 'button';
-          div.className = 'event' + (i===defaultIndex ? ' active' : '');
-          div.innerHTML = `<div class="t">${t.label}</div><div class="d">${t.description}</div><div class="m">${t.duration} min</div>`;
-          div.onclick = () => {
-            document.querySelectorAll('.event').forEach(x => x.classList.remove('active'));
-            div.classList.add('active');
-            selectedEventType = t;
-            els.duration.value = String(t.duration);
-            els.summaryType.textContent = t.label;
-            els.summaryDuration.textContent = `${t.duration} minutes`;
-            selectedIso = null;
-            els.selected.value = '';
-            els.slots.innerHTML = '';
-            setStatus(els.slotStatus, 'Loading availability...', true);
-            setStep(2);
-            if (els.date.value) loadAvailability();
+        const wanted = config?.defaultEventTypeId || 'standard';
+        let defaultIdx = Math.max(0, types.findIndex(t => t.id === wanted));
+        els.eventTypes.innerHTML='';
+        types.forEach((t,i)=>{
+          const b=document.createElement('button'); b.type='button'; b.className='event'+(i===defaultIdx?' active':'');
+          b.innerHTML=`<div class='t'>${t.label}</div><div class='m'>${t.duration} min</div>`;
+          b.onclick=()=>{
+            document.querySelectorAll('.event').forEach(x=>x.classList.remove('active'));
+            b.classList.add('active');
+            selectedEventType=t; els.duration.value=String(t.duration); selectedIso=null;
+            els.slots.innerHTML=''; updateBookEnabled();
+            if(els.date.value) loadAvailability();
           };
-          els.eventTypes.appendChild(div);
+          els.eventTypes.appendChild(b);
         });
-
-        if(types[defaultIndex]){
-          selectedEventType = types[defaultIndex];
-          els.summaryType.textContent = types[defaultIndex].label;
-          els.summaryDuration.textContent = `${types[defaultIndex].duration} minutes`;
-        }
+        selectedEventType = types[defaultIdx] || null;
+        if(selectedEventType) els.duration.value = String(selectedEventType.duration);
       }
 
-      function toLocalYMD(d){
-        const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2,'0');
-        const day = String(d.getDate()).padStart(2,'0');
-        return `${y}-${m}-${day}`;
-      }
+      function renderCalendar(){
+        const y=currentMonth.getFullYear(), m=currentMonth.getMonth();
+        els.calTitle.textContent = currentMonth.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+        els.calDow.innerHTML = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class='cal-dow'>${d}</div>`).join('');
 
-      function renderCalendarMonth(){
-        const y = currentMonth.getFullYear();
-        const m = currentMonth.getMonth();
-        const monthName = currentMonth.toLocaleDateString(undefined,{month:'long',year:'numeric'});
-        els.calTitle.textContent = monthName;
+        const first=new Date(y,m,1), start=first.getDay(), daysInMonth=new Date(y,m+1,0).getDate();
+        const today=new Date(), tomorrow=new Date(today.getFullYear(),today.getMonth(),today.getDate()+1);
+        let html=''; for(let i=0;i<start;i++) html+='<div></div>';
+        let firstSelectable='';
 
-        const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-        els.calDow.innerHTML = dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
-
-        const first = new Date(y,m,1);
-        const startWeekday = first.getDay();
-        const daysInMonth = new Date(y,m+1,0).getDate();
-        const today = new Date();
-        const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate()+1);
-
-        let html = '';
-        for(let i=0;i<startWeekday;i++) html += '<div></div>';
-
-        let firstSelectableYMD = '';
         for(let day=1; day<=daysInMonth; day++){
-          const d = new Date(y,m,day);
-          const ymd = toLocalYMD(d);
-          const isBookingDay = activeBookingDays.includes(d.getDay());
-          const notPast = d >= tomorrow;
-          const isAvailable = isBookingDay && notPast;
-          const active = els.date.value === ymd;
-          if(!els.date.value && isAvailable && !firstSelectableYMD) firstSelectableYMD = ymd;
-
-          html += `<button type="button" class="cal-day ${isAvailable ? '' : 'disabled'} ${active ? 'active' : ''}" data-date="${ymd}">${day}</button>`;
+          const d=new Date(y,m,day), ymd=toLocalYMD(d);
+          const okDay=activeBookingDays.includes(d.getDay()) && d>=tomorrow;
+          const active=els.date.value===ymd;
+          if(!els.date.value && okDay && !firstSelectable) firstSelectable=ymd;
+          html += `<button type='button' class='cal-day ${okDay?'':'disabled'} ${active?'active':''}' data-date='${ymd}'>${day}</button>`;
         }
+        els.calDays.innerHTML=html;
+        if(!els.date.value && firstSelectable){ els.date.value=firstSelectable; return renderCalendar(); }
 
-        els.calDays.innerHTML = html;
-
-        if(!els.date.value && firstSelectableYMD){
-          els.date.value = firstSelectableYMD;
-          renderCalendarMonth();
-          return;
-        }
-
-        els.calDays.querySelectorAll('.cal-day').forEach(btn => {
-          btn.onclick = () => {
+        els.calDays.querySelectorAll('.cal-day').forEach(btn=>{
+          btn.onclick=()=>{
             if(btn.classList.contains('disabled')) return;
-            const ymd = btn.getAttribute('data-date');
-            els.date.value = ymd;
-            selectedIso = null;
-            els.selected.value = '';
-            els.slots.innerHTML = '';
-            renderCalendarMonth();
-            setStatus(els.slotStatus, 'Loading availability...', true);
-            updateBookEnabled();
-            loadAvailability();
+            els.date.value=btn.dataset.date;
+            selectedIso=null; els.slots.innerHTML=''; updateBookEnabled();
+            renderCalendar(); loadAvailability();
           };
         });
-      }
 
-      function renderDurations(durations){
-        // kept for compatibility; duration now follows selected meeting type
-        if (!durations?.length) return;
-        if (!els.duration.value) els.duration.value = String(durations[0]);
-      }
-
-      async function loadConfig(){
-        const res = await fetch('/api/config');
-        config = await res.json();
-
-        els.brandTitle.textContent = `Book with ${config.hostName || 'us'}`;
-        els.heroSub.textContent = `${config.brandName || 'Booking'} • Your timezone: ${viewerTimeZone} • Host timezone: ${config.timezone}`;
-
-        renderDurations(config.durations || [15,20,30,45,60]);
-        renderEventTypes(config.eventTypes || []);
-        const isChinaViewer = (config.chinaSchedule?.timezones || []).includes(viewerTimeZone);
-        activeBookingDays = isChinaViewer ? (config.chinaSchedule?.bookingDays || [2,3,4]) : (config.bookingDays || [2]);
-        renderCalendarMonth();
-
-        // default duration is derived from selected meeting type
-        if (selectedEventType) {
-          els.duration.value = String(selectedEventType.duration);
-        } else {
-          els.duration.value = String(config.defaultDuration || 30);
+        if(els.date.value){
+          const d = new Date(els.date.value+'T00:00:00');
+          els.pickedDate.textContent = d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
         }
-
-        // auto-load initial slots without extra click
-        if (els.date.value) {
-          setStatus(els.slotStatus, 'Loading availability...', true);
-          loadAvailability();
-        }
-      }
-
-      function formatTimeRangeForViewer(startIso, endIso){
-        const start = new Date(startIso);
-        const end = new Date(endIso);
-        const opts = { hour: 'numeric', minute: '2-digit', hour12: true };
-        const clean = (s) => s.replace(/\s?(AM|PM)$/i, '').trim();
-        return `${clean(start.toLocaleTimeString(undefined, opts))}-${clean(end.toLocaleTimeString(undefined, opts))}`;
       }
 
       async function loadAvailability(){
-        const date = els.date.value;
+        if(!els.date.value) return;
         const duration = Number((selectedEventType && selectedEventType.duration) || els.duration.value || 30);
-
-        if(!date) return setStatus(els.slotStatus, 'Pick a date first.', false);
-
-        selectedIso = null;
-        selectedLabel = '';
-        els.selected.value = '';
-        els.openEvent.classList.add('hidden');
-        els.slots.innerHTML = '';
-        els.load.disabled = true;
-        setStatus(els.slotStatus, 'Loading availability...', true);
-
-        const res = await fetch(`/api/availability?date=${encodeURIComponent(date)}&duration=${duration}&viewerTimezone=${encodeURIComponent(viewerTimeZone)}`);
+        setStatus(els.slotStatus,'Loading availability...',true); els.slots.innerHTML='';
+        const res = await fetch(`/api/availability?date=${encodeURIComponent(els.date.value)}&duration=${duration}&viewerTimezone=${encodeURIComponent(viewerTimeZone)}`);
         const data = await res.json();
+        if(!res.ok){ return setStatus(els.slotStatus,data.error||'Could not load slots.',false); }
+        if(!data.slots?.length){ return setStatus(els.slotStatus,'No slots available for selected date.',false); }
 
-        if(!res.ok){
-          els.load.disabled = false;
-          return setStatus(els.slotStatus, data.error || 'Could not load slots.', false);
-        }
-        if(!data.slots.length){
-          els.load.disabled = false;
-          return setStatus(els.slotStatus, 'No slots available for that date.', false);
-        }
-
-        data.slots.forEach(s => {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'slot';
-          const viewerLabel = formatTimeRangeForViewer(s.start, s.end);
-          b.textContent = viewerLabel;
-          b.onclick = () => {
-            document.querySelectorAll('.slot').forEach(x => x.classList.remove('active'));
-            b.classList.add('active');
-            selectedIso = s.start;
-            selectedLabel = viewerLabel;
-            els.selected.value = viewerLabel;
-            setStep(3);
-            updateBookEnabled();
+        data.slots.forEach(s=>{
+          const row = document.createElement('div'); row.className='slot-row';
+          const btn = document.createElement('button'); btn.type='button'; btn.className='slot'; btn.textContent=formatRange(s.start,s.end);
+          const confirm = document.createElement('button'); confirm.type='button'; confirm.className='confirm-btn'; confirm.textContent='Confirm'; confirm.style.display='none';
+          btn.onclick=()=>{
+            document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));
+            document.querySelectorAll('.confirm-btn').forEach(x=>x.style.display='none');
+            btn.classList.add('active'); confirm.style.display='block';
+            selectedIso=s.start; updateBookEnabled();
           };
-          els.slots.appendChild(b);
+          confirm.onclick=()=>{ els.name.focus(); };
+          row.append(btn,confirm);
+          els.slots.appendChild(row);
         });
-
-        els.load.disabled = false;
-        setStatus(els.slotStatus, 'Select a time slot.', true);
+        setStatus(els.slotStatus,'Select a time, then confirm.',true);
       }
 
       els.load.onclick = loadAvailability;
+      els.name.addEventListener('input',updateBookEnabled);
+      els.email.addEventListener('input',updateBookEnabled);
+      els.calPrev.addEventListener('click',()=>{ currentMonth = new Date(currentMonth.getFullYear(),currentMonth.getMonth()-1,1); renderCalendar(); });
+      els.calNext.addEventListener('click',()=>{ currentMonth = new Date(currentMonth.getFullYear(),currentMonth.getMonth()+1,1); renderCalendar(); });
 
-      els.clearSelection.onclick = () => {
-        selectedIso = null;
-        selectedLabel = '';
-        els.selected.value = '';
-        els.openEvent.classList.add('hidden');
-        document.querySelectorAll('.slot').forEach(x => x.classList.remove('active'));
-        setStatus(els.slotStatus, 'Selection cleared.', true);
-        setStep(2);
-        updateBookEnabled();
-      };
+      els.book.onclick = async ()=>{
+        const name=els.name.value.trim(), email=els.email.value.trim();
+        const duration=Number((selectedEventType && selectedEventType.duration)||els.duration.value||30);
+        if(!name || !validateEmail(email) || !selectedIso){ return setStatus(els.bookStatus,'Enter valid details and choose a slot.',false); }
+        setStatus(els.bookStatus,'Booking...',true); els.book.disabled=true;
 
-      els.book.onclick = async () => {
-        const name = els.name.value.trim();
-        const email = els.email.value.trim();
-        const duration = Number((selectedEventType && selectedEventType.duration) || els.duration.value || 30);
-
-        if(!name || !email || !selectedIso){
-          return setStatus(els.bookStatus, 'Enter name/email and select a time slot.', false);
-        }
-        if(!validateEmail(email)){
-          return setStatus(els.bookStatus, 'Please enter a valid email address.', false);
-        }
-
-        els.book.disabled = true;
-        setStatus(els.bookStatus, 'Booking your meeting...', true);
-
-        const res = await fetch('/api/book', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            email,
-            start: selectedIso,
-            duration,
-            eventTypeLabel: selectedEventType ? selectedEventType.label : 'Meeting',
-            viewerTimezone: viewerTimeZone
-          })
+        const res = await fetch('/api/book',{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ name,email,start:selectedIso,duration,eventTypeLabel:selectedEventType?.label||'Meeting',viewerTimezone })
         });
-
         const data = await res.json();
-        if(!res.ok){
-          updateBookEnabled();
-          return setStatus(els.bookStatus, data.error || 'Booking failed.', false);
-        }
-
-        setStatus(els.bookStatus, `Booked: ${selectedLabel}. Invite sent to ${email}.`, true);
-
-        if (data.htmlLink) {
-          els.openEvent.classList.remove('hidden');
-          els.openEvent.onclick = () => window.open(data.htmlLink, '_blank');
-        }
+        if(!res.ok){ updateBookEnabled(); return setStatus(els.bookStatus,data.error||'Booking failed.',false); }
+        setStatus(els.bookStatus,'Booked successfully. Invite sent by email.',true);
+        if(data.htmlLink){ els.openEvent.style.display='block'; els.openEvent.onclick=()=>window.open(data.htmlLink,'_blank'); }
       };
 
-      els.name.addEventListener('input', updateBookEnabled);
-      els.email.addEventListener('input', updateBookEnabled);
-      els.calPrev.addEventListener('click', () => {
-        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()-1, 1);
-        renderCalendarMonth();
-      });
-      els.calNext.addEventListener('click', () => {
-        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+1, 1);
-        renderCalendarMonth();
-      });
+      async function init(){
+        const res=await fetch('/api/config'); config=await res.json();
+        els.brandTitle.textContent=`Book with ${config.hostName || 'Shia Du'}`;
+        els.heroSub.textContent=`Your timezone: ${viewerTimeZone}`;
+        els.tzLabel.textContent=viewerTimeZone;
 
-      loadConfig().then(() => {
-        setStep(1);
-        updateBookEnabled();
-      }).catch(() => {
-        setStatus(els.slotStatus, 'Could not load app config. Refresh and try again.', false);
-      });
+        const isChina=(config.chinaSchedule?.timezones||[]).includes(viewerTimeZone);
+        activeBookingDays = isChina ? (config.chinaSchedule?.bookingDays||[2,3,4]) : (config.bookingDays||[2,3,4]);
+
+        renderEventTypes(config.eventTypes||[]);
+        renderCalendar();
+        if(els.date.value) loadAvailability();
+      }
+
+      init().catch(()=>setStatus(els.slotStatus,'Could not initialize booking page.',false));
     </script>
   </body>
 </html>
