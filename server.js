@@ -30,7 +30,7 @@ const BUFFER_MINUTES = Number(process.env.BUFFER_MINUTES || 0);
 const MAX_MEETINGS_PER_DAY = Number(process.env.MAX_MEETINGS_PER_DAY || 12);
 
 const BRAND_NAME = process.env.BRAND_NAME || 'iCalendar';
-const HOST_NAME = process.env.HOST_NAME || 'Shia';
+const HOST_NAME = process.env.HOST_NAME || 'Shia Du';
 const DEFAULT_DURATION = Number(process.env.DEFAULT_DURATION || 30);
 const DEFAULT_EVENT_TYPE_ID = process.env.DEFAULT_EVENT_TYPE_ID || 'standard';
 const AGENT_API_KEY = process.env.AGENT_API_KEY || '';
