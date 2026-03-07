@@ -31,6 +31,8 @@ const MAX_MEETINGS_PER_DAY = Number(process.env.MAX_MEETINGS_PER_DAY || 12);
 
 const BRAND_NAME = process.env.BRAND_NAME || 'iCalendar';
 const HOST_NAME = process.env.HOST_NAME || 'Shia';
+const DEFAULT_DURATION = Number(process.env.DEFAULT_DURATION || 30);
+const DEFAULT_EVENT_TYPE_ID = process.env.DEFAULT_EVENT_TYPE_ID || 'standard';
 const AGENT_API_KEY = process.env.AGENT_API_KEY || '';
 
 function requireAgentAuth(req, res, next) {
@@ -254,6 +256,8 @@ app.get('/api/config', (_req, res) => {
     bufferMinutes: BUFFER_MINUTES,
     maxMeetingsPerDay: MAX_MEETINGS_PER_DAY,
     durations: [15, 20, 30, 45, 60],
+    defaultDuration: DEFAULT_DURATION,
+    defaultEventTypeId: DEFAULT_EVENT_TYPE_ID,
     eventTypes: [
       { id: 'standard', label: 'Standard Session', duration: 30, description: 'Focused discussion with actionable next steps' },
       { id: 'intro', label: 'Intro Call', duration: 20, description: 'Quick intro + goals alignment' },

@@ -190,10 +190,13 @@
 
       function renderEventTypes(types){
         els.eventTypes.innerHTML = '';
+        const wantedId = config?.defaultEventTypeId || 'standard';
+        const defaultIndex = Math.max(0, types.findIndex(t => t.id === wantedId));
+
         types.forEach((t, i) => {
           const div = document.createElement('button');
           div.type = 'button';
-          div.className = 'event' + (i===0 ? ' active' : '');
+          div.className = 'event' + (i===defaultIndex ? ' active' : '');
           div.innerHTML = `<div class="t">${t.label}</div><div class="d">${t.description}</div><div class="m">${t.duration} min</div>`;
           div.onclick = () => {
             document.querySelectorAll('.event').forEach(x => x.classList.remove('active'));
@@ -207,10 +210,10 @@
           els.eventTypes.appendChild(div);
         });
 
-        if(types[0]){
-          selectedEventType = types[0];
-          els.summaryType.textContent = types[0].label;
-          els.summaryDuration.textContent = `${types[0].duration} minutes`;
+        if(types[defaultIndex]){
+          selectedEventType = types[defaultIndex];
+          els.summaryType.textContent = types[defaultIndex].label;
+          els.summaryDuration.textContent = `${types[defaultIndex].duration} minutes`;
         }
       }
 
@@ -286,8 +289,20 @@
         renderEventTypes(config.eventTypes || []);
         renderAvailableDates(config.bookingDays || [2]);
 
-        // default duration follows selected event type
-        if (selectedEventType) els.duration.value = String(selectedEventType.duration);
+        // hard default to configured duration (30 by default)
+        els.duration.value = String(config.defaultDuration || 30);
+        if (selectedEventType && selectedEventType.duration !== Number(els.duration.value)) {
+          const matched = (config.eventTypes || []).find(x => x.duration === Number(els.duration.value));
+          if (matched) {
+            selectedEventType = matched;
+            els.summaryType.textContent = matched.label;
+            els.summaryDuration.textContent = `${matched.duration} minutes`;
+            document.querySelectorAll('.event').forEach(x => x.classList.remove('active'));
+            const idx = (config.eventTypes || []).findIndex(x => x.id === matched.id);
+            const cards = document.querySelectorAll('.event');
+            if (cards[idx]) cards[idx].classList.add('active');
+          }
+        }
       }
 
       function formatForViewer(iso){
