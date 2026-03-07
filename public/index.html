@@ -39,7 +39,6 @@
       .cal-day.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 
       .tz-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px}
-      .tz-select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;max-width:280px}
       .date-title{font-size:18px;font-weight:700;margin:2px 0 10px}
       .slots{display:flex;flex-direction:column;gap:8px}
       .slot-row{display:block}
@@ -89,11 +88,7 @@
             <div class="cal-grid" id="calDays"></div>
             <div class="tz-row">
               <span class="muted">Your timezone</span>
-              <select id="tzSelect" class="tz-select"></select>
-            </div>
-            <div class="tz-row" style="margin-top:6px;padding-top:0;border-top:none">
-              <span class="muted">Host timezone</span>
-              <span id="hostTz" class="muted"></span>
+              <span id="tzLabel" class="muted"></span>
             </div>
           </div>
         </div>
@@ -125,8 +120,7 @@
         eventTypes: document.getElementById('eventTypes'), calTitle: document.getElementById('calTitle'),
         calDow: document.getElementById('calDow'), calDays: document.getElementById('calDays'),
         calPrev: document.getElementById('calPrev'), calNext: document.getElementById('calNext'),
-        tzSelect: document.getElementById('tzSelect'),
-        hostTz: document.getElementById('hostTz'), pickedDate: document.getElementById('pickedDate'),
+        tzLabel: document.getElementById('tzLabel'), pickedDate: document.getElementById('pickedDate'),
         date: document.getElementById('date'), duration: document.getElementById('duration'),
         slots: document.getElementById('slots'), slotStatus: document.getElementById('slotStatus'),
         name: document.getElementById('name'), email: document.getElementById('email'),
@@ -139,20 +133,6 @@
       let activeBookingDays = [2], selectedEventType = null, selectedIso = null;
 
       function toLocalYMD(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-      function timezoneOptions(){
-        const common = [
-          'America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
-          'Europe/London','Europe/Paris','Asia/Shanghai','Asia/Hong_Kong','Asia/Tokyo','UTC'
-        ];
-        const all = (typeof Intl.supportedValuesOf === 'function') ? Intl.supportedValuesOf('timeZone') : common;
-        const opts = [...new Set([...common, ...all])];
-        return opts;
-      }
-      function renderTimezonePicker(){
-        const opts = timezoneOptions();
-        els.tzSelect.innerHTML = opts.map(t => `<option value="${t}">${t}</option>`).join('');
-        els.tzSelect.value = opts.includes(viewerTimeZone) ? viewerTimeZone : 'UTC';
-      }
       function validateEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
       function setStatus(el,msg,ok=true){ el.className='status '+(ok?'ok':'err'); el.textContent=msg; }
       function updateBookEnabled(){ els.book.disabled = !(els.name.value.trim() && validateEmail(els.email.value.trim()) && selectedIso); }
@@ -248,16 +228,6 @@
       els.email.addEventListener('input',updateBookEnabled);
       els.calPrev.addEventListener('click',()=>{ currentMonth = new Date(currentMonth.getFullYear(),currentMonth.getMonth()-1,1); renderCalendar(); });
       els.calNext.addEventListener('click',()=>{ currentMonth = new Date(currentMonth.getFullYear(),currentMonth.getMonth()+1,1); renderCalendar(); });
-      els.tzSelect.addEventListener('change',()=>{
-        viewerTimeZone = els.tzSelect.value;
-        const isChina=(config.chinaSchedule?.timezones||[]).includes(viewerTimeZone);
-        activeBookingDays = isChina ? (config.chinaSchedule?.bookingDays||[2,3,4]) : (config.bookingDays||[2,3,4]);
-        selectedIso = null;
-        els.date.value = '';
-        els.slots.innerHTML = '';
-        renderCalendar();
-        if(els.date.value) loadAvailability();
-      });
 
       els.book.onclick = async ()=>{
         const name=els.name.value.trim(), email=els.email.value.trim();
@@ -278,9 +248,8 @@
       async function init(){
         const res=await fetch('/api/config'); config=await res.json();
         els.brandTitle.textContent=`Book with ${config.hostName || 'Shia Du'}`;
-        els.heroSub.textContent=`Your timezone (editable) • Host timezone: ${config.timezone}`;
-        renderTimezonePicker();
-        els.hostTz.textContent = config.timezone || 'America/New_York';
+        els.heroSub.textContent=`Choose a time in your local timezone.`;
+        els.tzLabel.textContent = viewerTimeZone;
 
         const isChina=(config.chinaSchedule?.timezones||[]).includes(viewerTimeZone);
         activeBookingDays = isChina ? (config.chinaSchedule?.bookingDays||[2,3,4]) : (config.bookingDays||[2,3,4]);
