@@ -281,7 +281,8 @@
 
         els.brandTitle.textContent = `Book with ${config.hostName || 'us'}`;
         els.heroSub.textContent = `${config.brandName || 'Booking'} • Your timezone: ${viewerTimeZone} • Host timezone: ${config.timezone}`;
-        els.rulesBadge.textContent = `Notice: ${config.minNoticeHours}h · Buffer: ${config.bufferMinutes}m · Max/day: ${config.maxMeetingsPerDay}`;
+        const bufferText = Number(config.bufferMinutes) > 0 ? `${config.bufferMinutes} minute gap between meetings` : 'No gap between meetings';
+        els.rulesBadge.textContent = `Book at least ${config.minNoticeHours} hours ahead • ${bufferText} • Up to ${config.maxMeetingsPerDay} meetings per day`;
 
         renderDurations(config.durations || [15,20,30,45,60]);
         renderEventTypes(config.eventTypes || []);
