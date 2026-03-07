@@ -34,6 +34,7 @@ const BRAND_NAME = process.env.BRAND_NAME || 'iCalendar';
 const HOST_NAME = process.env.HOST_NAME || 'Shia(Xiaotong) Du';
 const DEFAULT_DURATION = Number(process.env.DEFAULT_DURATION || 30);
 const DEFAULT_EVENT_TYPE_ID = process.env.DEFAULT_EVENT_TYPE_ID || 'standard';
+const CALENDAR_EVENT_PREFIX = process.env.CALENDAR_EVENT_PREFIX || 'iCalendar';
 const AGENT_API_KEY = process.env.AGENT_API_KEY || '';
 
 function requireAgentAuth(req, res, next) {
@@ -375,7 +376,7 @@ app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
 
     const calendar = getCalendarClient();
     const calendarId = getCalendarId();
-    const summary = `${eventTypeLabel || 'Meeting'} with ${name}`;
+    const summary = `${CALENDAR_EVENT_PREFIX}: ${eventTypeLabel || 'Meeting'} with ${name}`;
 
     const event = await calendar.events.insert({
       calendarId,
@@ -500,7 +501,7 @@ app.post('/api/book', async (req, res) => {
     const calendar = getCalendarClient();
     const calendarId = getCalendarId();
 
-    const summary = `${eventTypeLabel || 'Meeting'} with ${name}`;
+    const summary = `${CALENDAR_EVENT_PREFIX}: ${eventTypeLabel || 'Meeting'} with ${name}`;
 
     const event = await calendar.events.insert({
       calendarId,
