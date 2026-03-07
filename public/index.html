@@ -342,12 +342,11 @@
         }
       }
 
-      function formatForViewer(iso){
-        const d = new Date(iso);
-        return d.toLocaleString(undefined, {
-          weekday: 'short', month: 'short', day: 'numeric',
-          hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
-        });
+      function formatTimeRangeForViewer(startIso, endIso){
+        const start = new Date(startIso);
+        const end = new Date(endIso);
+        const opts = { hour: 'numeric', minute: '2-digit' };
+        return `${start.toLocaleTimeString(undefined, opts)} - ${end.toLocaleTimeString(undefined, opts)}`;
       }
 
       async function loadAvailability(){
@@ -380,8 +379,8 @@
           const b = document.createElement('button');
           b.type = 'button';
           b.className = 'slot';
-          const viewerLabel = formatForViewer(s.start);
-          b.innerHTML = `<div>${viewerLabel}</div><div class="muted" style="font-size:12px">Host time: ${s.hostLabel}</div>`;
+          const viewerLabel = formatTimeRangeForViewer(s.start, s.end);
+          b.textContent = viewerLabel;
           b.onclick = () => {
             document.querySelectorAll('.slot').forEach(x => x.classList.remove('active'));
             b.classList.add('active');
