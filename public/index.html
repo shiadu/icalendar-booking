@@ -60,6 +60,12 @@
       .kv{display:grid;grid-template-columns:130px 1fr;gap:8px;font-size:14px;margin:8px 0}
       .pill{display:inline-block;background:#eef9fb;border:1px solid #B4D8E7;color:#1f7e9a;padding:4px 8px;border-radius:999px;font-size:12px;margin-right:6px}
 
+      .stepper{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+      .step{font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted)}
+      .step.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+      .actions{display:flex;gap:8px;margin-top:8px}
+      button[disabled]{opacity:.55;cursor:not-allowed}
+      .help{margin-top:14px;padding:10px;border:1px dashed var(--line);border-radius:10px;background:#fcfcfc;color:var(--muted);font-size:13px}
       .hidden{display:none}
 
       @media (max-width: 920px){
@@ -73,6 +79,11 @@
         <h1 id="brandTitle">Book a meeting</h1>
         <p id="heroSub">Pick a time that works for both of us.</p>
         <span class="badge" id="rulesBadge">Loading booking rules...</span>
+      </div>
+      <div class="stepper" id="stepper">
+        <span class="step active" id="step1">1. Meeting type</span>
+        <span class="step" id="step2">2. Date & time</span>
+        <span class="step" id="step3">3. Confirm details</span>
       </div>
 
       <div class="grid">
@@ -88,7 +99,10 @@
           <label>Duration</label>
           <select id="duration"></select>
 
-          <button id="load">Find available times</button>
+          <div class="actions">
+            <button id="load">Find available times</button>
+            <button id="clearSelection" class="secondary" type="button">Clear</button>
+          </div>
           <div id="slots" class="slots"></div>
           <div id="slotStatus" class="status"></div>
         </div>
@@ -107,13 +121,16 @@
           <div class="kv"><div>Meeting type</div><div id="summaryType" class="muted">—</div></div>
           <div class="kv"><div>Duration</div><div id="summaryDuration" class="muted">—</div></div>
 
-          <button id="book">Book meeting</button>
+          <button id="book" disabled>Book meeting</button>
           <button id="openEvent" class="secondary hidden" type="button">Open calendar event</button>
           <div id="bookStatus" class="status"></div>
 
           <div style="margin-top:14px" class="muted">
             <span class="pill">Invite sent automatically</span>
             <span class="pill">Timezone-safe booking</span>
+          </div>
+          <div class="help">
+            Need help? If times don't show, choose another available date or refresh once. You can always reschedule from the calendar invite.
           </div>
         </div>
       </div>
@@ -137,8 +154,12 @@
         summaryType: document.getElementById('summaryType'),
         summaryDuration: document.getElementById('summaryDuration'),
         book: document.getElementById('book'),
+        clearSelection: document.getElementById('clearSelection'),
         bookStatus: document.getElementById('bookStatus'),
-        openEvent: document.getElementById('openEvent')
+        openEvent: document.getElementById('openEvent'),
+        step1: document.getElementById('step1'),
+        step2: document.getElementById('step2'),
+        step3: document.getElementById('step3')
       };
 
       let config = null;
@@ -150,6 +171,21 @@
       function setStatus(el, msg, ok=true){
         el.className = 'status ' + (ok ? 'ok' : 'err');
         el.textContent = msg;
+      }
+
+      function setStep(active){
+        [els.step1, els.step2, els.step3].forEach((s, i) => {
+          s.classList.toggle('active', i === active - 1);
+        });
+      }
+
+      function validateEmail(email){
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      }
+
+      function updateBookEnabled(){
+        const valid = !!els.name.value.trim() && validateEmail(els.email.value.trim()) && !!selectedIso;
+        els.book.disabled = !valid;
       }
 
       function renderEventTypes(types){
@@ -166,6 +202,7 @@
             els.duration.value = String(t.duration);
             els.summaryType.textContent = t.label;
             els.summaryDuration.textContent = `${t.duration} minutes`;
+            setStep(2);
           };
           els.eventTypes.appendChild(div);
         });
@@ -219,6 +256,7 @@
             els.selected.value = '';
             els.slots.innerHTML = '';
             setStatus(els.slotStatus, 'Date selected. Click “Find available times”.', true);
+            updateBookEnabled();
           };
 
           els.dateChoices.appendChild(btn);
@@ -272,13 +310,20 @@
         els.selected.value = '';
         els.openEvent.classList.add('hidden');
         els.slots.innerHTML = '';
+        els.load.disabled = true;
         setStatus(els.slotStatus, 'Loading availability...', true);
 
         const res = await fetch(`/api/availability?date=${encodeURIComponent(date)}&duration=${duration}`);
         const data = await res.json();
 
-        if(!res.ok) return setStatus(els.slotStatus, data.error || 'Could not load slots.', false);
-        if(!data.slots.length) return setStatus(els.slotStatus, 'No slots available for that date.', false);
+        if(!res.ok){
+          els.load.disabled = false;
+          return setStatus(els.slotStatus, data.error || 'Could not load slots.', false);
+        }
+        if(!data.slots.length){
+          els.load.disabled = false;
+          return setStatus(els.slotStatus, 'No slots available for that date.', false);
+        }
 
         data.slots.forEach(s => {
           const b = document.createElement('button');
@@ -292,11 +337,25 @@
             selectedIso = s.start;
             selectedLabel = viewerLabel;
             els.selected.value = viewerLabel;
+            setStep(3);
+            updateBookEnabled();
           };
           els.slots.appendChild(b);
         });
 
+        els.load.disabled = false;
         setStatus(els.slotStatus, 'Select a time slot.', true);
+      };
+
+      els.clearSelection.onclick = () => {
+        selectedIso = null;
+        selectedLabel = '';
+        els.selected.value = '';
+        els.openEvent.classList.add('hidden');
+        document.querySelectorAll('.slot').forEach(x => x.classList.remove('active'));
+        setStatus(els.slotStatus, 'Selection cleared.', true);
+        setStep(2);
+        updateBookEnabled();
       };
 
       els.book.onclick = async () => {
@@ -307,7 +366,11 @@
         if(!name || !email || !selectedIso){
           return setStatus(els.bookStatus, 'Enter name/email and select a time slot.', false);
         }
+        if(!validateEmail(email)){
+          return setStatus(els.bookStatus, 'Please enter a valid email address.', false);
+        }
 
+        els.book.disabled = true;
         setStatus(els.bookStatus, 'Booking your meeting...', true);
 
         const res = await fetch('/api/book', {
@@ -323,7 +386,10 @@
         });
 
         const data = await res.json();
-        if(!res.ok) return setStatus(els.bookStatus, data.error || 'Booking failed.', false);
+        if(!res.ok){
+          updateBookEnabled();
+          return setStatus(els.bookStatus, data.error || 'Booking failed.', false);
+        }
 
         setStatus(els.bookStatus, `Booked: ${selectedLabel}. Invite sent to ${email}.`, true);
 
@@ -333,7 +399,16 @@
         }
       };
 
-      loadConfig().catch(() => {
+      els.name.addEventListener('input', updateBookEnabled);
+      els.email.addEventListener('input', updateBookEnabled);
+      els.duration.addEventListener('change', () => {
+        els.summaryDuration.textContent = `${els.duration.value} minutes`;
+      });
+
+      loadConfig().then(() => {
+        setStep(1);
+        updateBookEnabled();
+      }).catch(() => {
         setStatus(els.slotStatus, 'Could not load app config. Refresh and try again.', false);
       });
     </script>
