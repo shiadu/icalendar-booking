@@ -11,8 +11,8 @@ app.use(express.static('public'));
 
 const PORT = Number(process.env.PORT || 3000);
 const TZ = process.env.BOOKING_TIMEZONE || 'America/New_York';
-const BOOKING_DAY = Number(process.env.BOOKING_DAY || 2); // 0 Sun, 2 Tue
-const START_HOUR = Number(process.env.BOOKING_START_HOUR || 14); // 2 PM
+const BOOKING_DAYS = (process.env.BOOKING_DAYS || '2').split(',').map(x => Number(x.trim())).filter(x => !Number.isNaN(x)); // Tue=2,Wed=3,Thu=4
+const START_HOUR = Number(process.env.BOOKING_START_HOUR || 13); // 1 PM
 const END_HOUR = Number(process.env.BOOKING_END_HOUR || 18); // 6 PM
 
 // New controls (more Calendly-like)
@@ -63,7 +63,7 @@ function getDaySlots(dateStr, durationMin) {
   const dayEnd = fromZonedTime(`${dateStr}T${String(END_HOUR).padStart(2, '0')}:00:00`, TZ);
 
   const dayCheck = toZonedTime(fromZonedTime(baseLocal, TZ), TZ);
-  if (dayCheck.getDay() !== BOOKING_DAY) return [];
+  if (!BOOKING_DAYS.includes(dayCheck.getDay())) return [];
 
   const slots = [];
   let cur = dayStart;
@@ -186,7 +186,7 @@ app.get('/api/config', (_req, res) => {
     brandName: BRAND_NAME,
     hostName: HOST_NAME,
     timezone: TZ,
-    bookingDay: BOOKING_DAY,
+    bookingDays: BOOKING_DAYS,
     startHour: START_HOUR,
     endHour: END_HOUR,
     minNoticeHours: MIN_NOTICE_HOURS,

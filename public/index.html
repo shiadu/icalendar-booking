@@ -221,7 +221,7 @@
         return `${y}-${m}-${day}`;
       }
 
-      function renderAvailableDates(bookingDay){
+      function renderAvailableDates(bookingDays){
         els.dateChoices.innerHTML = '';
         const today = new Date();
 
@@ -231,7 +231,7 @@
         for(let i=0; i<21; i++){
           const dt = new Date(today);
           dt.setDate(today.getDate()+i);
-          const isAvailable = dt.getDay() === bookingDay;
+          const isAvailable = bookingDays.includes(dt.getDay());
 
           const btn = document.createElement('button');
           btn.type='button';
@@ -286,7 +286,7 @@
 
         renderDurations(config.durations || [15,20,30,45,60]);
         renderEventTypes(config.eventTypes || []);
-        renderAvailableDates(config.bookingDay ?? 2);
+        renderAvailableDates(config.bookingDays || [2]);
 
         // default duration follows selected event type
         if (selectedEventType) els.duration.value = String(selectedEventType.duration);
