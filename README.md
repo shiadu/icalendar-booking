@@ -1,16 +1,17 @@
 # iCalendar (free Calendly-like app)
 
 A lightweight booking tool with:
-- Public booking page
+- Clean, modern booking UX with event types (Calendly-inspired)
 - Duration options: 15/20/30/45/60
-- Availability: Tuesday, 2 PM–6 PM ET
+- Availability: Tuesday, 2 PM–6 PM ET (configurable)
 - Google Calendar sync to prevent double-booking
+- Min notice, buffer, and max meetings/day controls
 - Automatic confirmation emails (Google invite + optional custom branded email)
 
 ## 1) Setup
 
 ```bash
-cd icalendar-app
+cd "/Users/shiadu/.openclaw/workspaceopenclaw configur/Startup/Apps/iCalendar"
 npm install
 cp .env.example .env
 ```
@@ -52,6 +53,11 @@ Open: `http://localhost:3000`
 - Same env vars + start command
 
 ## Notes
-- Time zone is fixed to `America/New_York`.
+- Time zone defaults to `America/New_York`.
 - Only Tuesdays are bookable by default.
-- To change availability, edit `.env`.
+- To change availability/rules, edit `.env`:
+  - `MIN_NOTICE_HOURS`
+  - `BUFFER_MINUTES`
+  - `MAX_MEETINGS_PER_DAY`
+  - `BOOKING_DAY`, `BOOKING_START_HOUR`, `BOOKING_END_HOUR`
+  - `BRAND_NAME`, `HOST_NAME`

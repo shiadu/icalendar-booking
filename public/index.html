@@ -5,110 +5,267 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>iCalendar Booking</title>
     <style>
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f6f7fb; margin:0; }
-      .wrap { max-width:780px; margin:40px auto; padding:20px; }
-      .card { background:white; border-radius:14px; padding:20px; box-shadow:0 8px 24px rgba(0,0,0,.08); margin-bottom:16px; }
-      h1 { margin:0 0 6px; }
-      .muted { color:#637085; }
-      label { display:block; margin-top:12px; font-weight:600; }
-      select, input, button { width:100%; padding:10px; border-radius:10px; border:1px solid #d6dbe3; margin-top:8px; }
-      button { background:#111827; color:white; border:none; cursor:pointer; }
-      button:hover { opacity:.95; }
-      .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:12px; }
-      .slot { border:1px solid #d6dbe3; background:white; padding:10px; border-radius:10px; cursor:pointer; }
-      .slot.active { border-color:#111827; background:#111827; color:white; }
-      .ok { color:#0f9d58; font-weight:600; }
-      .err { color:#d93025; font-weight:600; }
+      :root{
+        --bg:#f8fafc;
+        --card:#ffffff;
+        --line:#e2e8f0;
+        --text:#0f172a;
+        --muted:#64748b;
+        --primary:#0f172a;
+        --accent:#0ea5e9;
+        --ok:#0f9d58;
+        --err:#d93025;
+      }
+      *{box-sizing:border-box}
+      body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);margin:0}
+      .wrap{max-width:1040px;margin:28px auto;padding:0 16px}
+      .hero{background:linear-gradient(120deg,#111827,#1f2937);color:#fff;padding:28px;border-radius:16px;margin-bottom:16px}
+      .hero h1{margin:0 0 8px;font-size:32px}
+      .hero p{margin:0;color:#cbd5e1}
+      .badge{display:inline-block;margin-top:12px;padding:8px 10px;border:1px solid rgba(255,255,255,.25);border-radius:999px;font-size:12px}
+
+      .grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+      .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+      .card h2{margin:0 0 10px;font-size:18px}
+      .muted{color:var(--muted)}
+
+      .event-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+      .event{border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:#fff}
+      .event.active{border-color:var(--primary);outline:2px solid rgba(15,23,42,.08)}
+      .event .t{font-weight:700}
+      .event .d{font-size:13px;color:var(--muted)}
+      .event .m{font-size:12px;color:#0ea5e9;margin-top:6px}
+
+      label{display:block;margin:10px 0 6px;font-weight:600;font-size:14px}
+      input,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #cbd5e1;font:inherit}
+      button{background:var(--primary);color:#fff;border:none;cursor:pointer}
+      button:hover{opacity:.95}
+      button.secondary{background:#fff;color:var(--text);border:1px solid var(--line)}
+
+      .slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}
+      .slot{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:left}
+      .slot.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+      .status{margin-top:10px;font-weight:600}
+      .status.ok{color:var(--ok)}
+      .status.err{color:var(--err)}
+
+      .kv{display:grid;grid-template-columns:130px 1fr;gap:8px;font-size:14px;margin:8px 0}
+      .pill{display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;padding:4px 8px;border-radius:999px;font-size:12px;margin-right:6px}
+
+      .hidden{display:none}
+
+      @media (max-width: 920px){
+        .grid{grid-template-columns:1fr}
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <div class="card">
-        <h1>iCalendar</h1>
-        <div class="muted">Book a time (Tuesdays, 2:00 PM–6:00 PM ET)</div>
+      <div class="hero">
+        <h1 id="brandTitle">Book a meeting</h1>
+        <p id="heroSub">Pick a time that works for both of us.</p>
+        <span class="badge" id="rulesBadge">Loading booking rules...</span>
       </div>
 
-      <div class="card">
-        <label>Date (Tuesday only)</label>
-        <input id="date" type="date" />
+      <div class="grid">
+        <div class="card">
+          <h2>1) Choose meeting type</h2>
+          <div id="eventTypes" class="event-grid"></div>
 
-        <label>Duration</label>
-        <select id="duration">
-          <option>15</option><option>20</option><option selected>30</option><option>45</option><option>60</option>
-        </select>
+          <h2 style="margin-top:16px">2) Pick date and time</h2>
+          <label>Date</label>
+          <input id="date" type="date" />
 
-        <button id="load">Find available times</button>
-        <div id="slots" class="grid"></div>
-      </div>
+          <label>Duration</label>
+          <select id="duration"></select>
 
-      <div class="card">
-        <label>Your name</label>
-        <input id="name" placeholder="Jane Doe" />
-        <label>Your email</label>
-        <input id="email" type="email" placeholder="jane@email.com" />
-        <label>Selected time</label>
-        <input id="selected" disabled placeholder="Pick a slot above" />
-        <button id="book">Book meeting</button>
-        <p id="status"></p>
+          <button id="load">Find available times</button>
+          <div id="slots" class="slots"></div>
+          <div id="slotStatus" class="status"></div>
+        </div>
+
+        <div class="card">
+          <h2>3) Your details</h2>
+          <label>Your name</label>
+          <input id="name" placeholder="Jane Doe" />
+
+          <label>Your email</label>
+          <input id="email" type="email" placeholder="jane@email.com" />
+
+          <label>Selected time</label>
+          <input id="selected" disabled placeholder="Pick a slot first" />
+
+          <div class="kv"><div>Meeting type</div><div id="summaryType" class="muted">—</div></div>
+          <div class="kv"><div>Duration</div><div id="summaryDuration" class="muted">—</div></div>
+
+          <button id="book">Book meeting</button>
+          <button id="openEvent" class="secondary hidden" type="button">Open calendar event</button>
+          <div id="bookStatus" class="status"></div>
+
+          <div style="margin-top:14px" class="muted">
+            <span class="pill">Invite sent automatically</span>
+            <span class="pill">Timezone-safe booking</span>
+          </div>
+        </div>
       </div>
     </div>
 
     <script>
-      const slotsEl = document.getElementById('slots');
-      const statusEl = document.getElementById('status');
-      const selectedEl = document.getElementById('selected');
-      let selectedIso = null;
+      const els = {
+        brandTitle: document.getElementById('brandTitle'),
+        heroSub: document.getElementById('heroSub'),
+        rulesBadge: document.getElementById('rulesBadge'),
+        eventTypes: document.getElementById('eventTypes'),
+        date: document.getElementById('date'),
+        duration: document.getElementById('duration'),
+        load: document.getElementById('load'),
+        slots: document.getElementById('slots'),
+        slotStatus: document.getElementById('slotStatus'),
+        name: document.getElementById('name'),
+        email: document.getElementById('email'),
+        selected: document.getElementById('selected'),
+        summaryType: document.getElementById('summaryType'),
+        summaryDuration: document.getElementById('summaryDuration'),
+        book: document.getElementById('book'),
+        bookStatus: document.getElementById('bookStatus'),
+        openEvent: document.getElementById('openEvent')
+      };
 
-      function setStatus(msg, ok=true){
-        statusEl.className = ok ? 'ok' : 'err';
-        statusEl.textContent = msg;
+      let config = null;
+      let selectedIso = null;
+      let selectedLabel = '';
+      let selectedEventType = null;
+
+      function setStatus(el, msg, ok=true){
+        el.className = 'status ' + (ok ? 'ok' : 'err');
+        el.textContent = msg;
       }
 
-      document.getElementById('load').onclick = async () => {
-        const date = document.getElementById('date').value;
-        const duration = document.getElementById('duration').value;
-        if(!date) return setStatus('Pick a date first.', false);
-        setStatus('Loading...', true);
-        slotsEl.innerHTML = '';
-        selectedIso = null;
-        selectedEl.value = '';
+      function renderEventTypes(types){
+        els.eventTypes.innerHTML = '';
+        types.forEach((t, i) => {
+          const div = document.createElement('button');
+          div.type = 'button';
+          div.className = 'event' + (i===0 ? ' active' : '');
+          div.innerHTML = `<div class="t">${t.label}</div><div class="d">${t.description}</div><div class="m">${t.duration} min</div>`;
+          div.onclick = () => {
+            document.querySelectorAll('.event').forEach(x => x.classList.remove('active'));
+            div.classList.add('active');
+            selectedEventType = t;
+            els.duration.value = String(t.duration);
+            els.summaryType.textContent = t.label;
+            els.summaryDuration.textContent = `${t.duration} minutes`;
+          };
+          els.eventTypes.appendChild(div);
+        });
 
-        const res = await fetch(`/api/availability?date=${date}&duration=${duration}`);
+        if(types[0]){
+          selectedEventType = types[0];
+          els.summaryType.textContent = types[0].label;
+          els.summaryDuration.textContent = `${types[0].duration} minutes`;
+        }
+      }
+
+      function renderDurations(durations){
+        els.duration.innerHTML = '';
+        durations.forEach(d => {
+          const o = document.createElement('option');
+          o.value = d;
+          o.textContent = `${d} minutes`;
+          els.duration.appendChild(o);
+        });
+      }
+
+      async function loadConfig(){
+        const res = await fetch('/api/config');
+        config = await res.json();
+
+        els.brandTitle.textContent = `Book with ${config.hostName || 'us'}`;
+        els.heroSub.textContent = `${config.brandName || 'Booking'} • ${config.timezone} timezone`;
+        els.rulesBadge.textContent = `Notice: ${config.minNoticeHours}h · Buffer: ${config.bufferMinutes}m · Max/day: ${config.maxMeetingsPerDay}`;
+
+        renderDurations(config.durations || [15,20,30,45,60]);
+        renderEventTypes(config.eventTypes || []);
+
+        // default duration follows selected event type
+        if (selectedEventType) els.duration.value = String(selectedEventType.duration);
+      }
+
+      els.load.onclick = async () => {
+        const date = els.date.value;
+        const duration = Number(els.duration.value || 30);
+
+        if(!date) return setStatus(els.slotStatus, 'Pick a date first.', false);
+
+        selectedIso = null;
+        selectedLabel = '';
+        els.selected.value = '';
+        els.openEvent.classList.add('hidden');
+        els.slots.innerHTML = '';
+        setStatus(els.slotStatus, 'Loading availability...', true);
+
+        const res = await fetch(`/api/availability?date=${encodeURIComponent(date)}&duration=${duration}`);
         const data = await res.json();
-        if(!res.ok) return setStatus(data.error || 'Could not load slots.', false);
-        if(!data.slots.length) return setStatus('No slots available for that date.', false);
+
+        if(!res.ok) return setStatus(els.slotStatus, data.error || 'Could not load slots.', false);
+        if(!data.slots.length) return setStatus(els.slotStatus, 'No slots available for that date.', false);
 
         data.slots.forEach(s => {
           const b = document.createElement('button');
+          b.type = 'button';
           b.className = 'slot';
-          b.type='button';
           b.textContent = s.label;
           b.onclick = () => {
-            [...document.querySelectorAll('.slot')].forEach(x=>x.classList.remove('active'));
+            document.querySelectorAll('.slot').forEach(x => x.classList.remove('active'));
             b.classList.add('active');
             selectedIso = s.start;
-            selectedEl.value = s.label;
+            selectedLabel = s.label;
+            els.selected.value = s.label;
           };
-          slotsEl.appendChild(b);
+          els.slots.appendChild(b);
         });
-        setStatus('Select a time slot.');
+
+        setStatus(els.slotStatus, 'Select a time slot.', true);
       };
 
-      document.getElementById('book').onclick = async () => {
-        const name = document.getElementById('name').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const duration = Number(document.getElementById('duration').value);
-        if(!name || !email || !selectedIso) return setStatus('Enter name/email and select a slot.', false);
+      els.book.onclick = async () => {
+        const name = els.name.value.trim();
+        const email = els.email.value.trim();
+        const duration = Number(els.duration.value || 30);
 
-        setStatus('Booking...', true);
+        if(!name || !email || !selectedIso){
+          return setStatus(els.bookStatus, 'Enter name/email and select a time slot.', false);
+        }
+
+        setStatus(els.bookStatus, 'Booking your meeting...', true);
+
         const res = await fetch('/api/book', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ name, email, start: selectedIso, duration })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email,
+            start: selectedIso,
+            duration,
+            eventTypeLabel: selectedEventType ? selectedEventType.label : 'Meeting'
+          })
         });
+
         const data = await res.json();
-        if(!res.ok) return setStatus(data.error || 'Booking failed.', false);
-        setStatus('Booked! Calendar invite sent.');
+        if(!res.ok) return setStatus(els.bookStatus, data.error || 'Booking failed.', false);
+
+        setStatus(els.bookStatus, `Booked: ${selectedLabel}. Invite sent to ${email}.`, true);
+
+        if (data.htmlLink) {
+          els.openEvent.classList.remove('hidden');
+          els.openEvent.onclick = () => window.open(data.htmlLink, '_blank');
+        }
       };
+
+      loadConfig().catch(() => {
+        setStatus(els.slotStatus, 'Could not load app config. Refresh and try again.', false);
+      });
     </script>
   </body>
 </html>
