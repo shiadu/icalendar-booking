@@ -153,8 +153,9 @@
       function updateBookEnabled(){ els.book.disabled = !(els.name.value.trim() && validateEmail(els.email.value.trim()) && selectedIso); }
       function formatRange(startIso,endIso){
         const opts = {hour:'numeric',minute:'2-digit',hour12:true};
-        const clean = s => s.replace(/\s?(AM|PM)$/i,'').trim();
-        return `${clean(new Date(startIso).toLocaleTimeString(undefined,opts))}-${clean(new Date(endIso).toLocaleTimeString(undefined,opts))}`;
+        const start = new Date(startIso).toLocaleTimeString(undefined,opts).toLowerCase();
+        const end = new Date(endIso).toLocaleTimeString(undefined,opts).toLowerCase();
+        return `${start}-${end}`;
       }
 
       function renderEventTypes(types){
