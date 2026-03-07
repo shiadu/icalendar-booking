@@ -112,8 +112,7 @@
           </div>
           <input id="date" type="hidden" />
 
-          <label>Duration</label>
-          <select id="duration"></select>
+          <input id="duration" type="hidden" />
 
           <div class="actions">
             <button id="load">Find available times</button>
@@ -227,6 +226,10 @@
             els.duration.value = String(t.duration);
             els.summaryType.textContent = t.label;
             els.summaryDuration.textContent = `${t.duration} minutes`;
+            selectedIso = null;
+            els.selected.value = '';
+            els.slots.innerHTML = '';
+            setStatus(els.slotStatus, 'Meeting type selected. Click “Find available times”.', true);
             setStep(2);
           };
           els.eventTypes.appendChild(div);
@@ -301,13 +304,9 @@
       }
 
       function renderDurations(durations){
-        els.duration.innerHTML = '';
-        durations.forEach(d => {
-          const o = document.createElement('option');
-          o.value = d;
-          o.textContent = `${d} minutes`;
-          els.duration.appendChild(o);
-        });
+        // kept for compatibility; duration now follows selected meeting type
+        if (!durations?.length) return;
+        if (!els.duration.value) els.duration.value = String(durations[0]);
       }
 
       async function loadConfig(){
@@ -323,19 +322,11 @@
         activeBookingDays = isChinaViewer ? (config.chinaSchedule?.bookingDays || [2,3,4]) : (config.bookingDays || [2]);
         renderCalendarMonth();
 
-        // hard default to configured duration (30 by default)
-        els.duration.value = String(config.defaultDuration || 30);
-        if (selectedEventType && selectedEventType.duration !== Number(els.duration.value)) {
-          const matched = (config.eventTypes || []).find(x => x.duration === Number(els.duration.value));
-          if (matched) {
-            selectedEventType = matched;
-            els.summaryType.textContent = matched.label;
-            els.summaryDuration.textContent = `${matched.duration} minutes`;
-            document.querySelectorAll('.event').forEach(x => x.classList.remove('active'));
-            const idx = (config.eventTypes || []).findIndex(x => x.id === matched.id);
-            const cards = document.querySelectorAll('.event');
-            if (cards[idx]) cards[idx].classList.add('active');
-          }
+        // default duration is derived from selected meeting type
+        if (selectedEventType) {
+          els.duration.value = String(selectedEventType.duration);
+        } else {
+          els.duration.value = String(config.defaultDuration || 30);
         }
       }
 
@@ -349,7 +340,7 @@
 
       els.load.onclick = async () => {
         const date = els.date.value;
-        const duration = Number(els.duration.value || 30);
+        const duration = Number((selectedEventType && selectedEventType.duration) || els.duration.value || 30);
 
         if(!date) return setStatus(els.slotStatus, 'Pick a date first.', false);
 
@@ -409,7 +400,7 @@
       els.book.onclick = async () => {
         const name = els.name.value.trim();
         const email = els.email.value.trim();
-        const duration = Number(els.duration.value || 30);
+        const duration = Number((selectedEventType && selectedEventType.duration) || els.duration.value || 30);
 
         if(!name || !email || !selectedIso){
           return setStatus(els.bookStatus, 'Enter name/email and select a time slot.', false);
@@ -450,9 +441,6 @@
 
       els.name.addEventListener('input', updateBookEnabled);
       els.email.addEventListener('input', updateBookEnabled);
-      els.duration.addEventListener('change', () => {
-        els.summaryDuration.textContent = `${els.duration.value} minutes`;
-      });
       els.calPrev.addEventListener('click', () => {
         currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()-1, 1);
         renderCalendarMonth();
