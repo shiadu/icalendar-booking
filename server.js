@@ -179,8 +179,8 @@ app.get('/api/config', (_req, res) => {
     maxMeetingsPerDay: MAX_MEETINGS_PER_DAY,
     durations: [15, 20, 30, 45, 60],
     eventTypes: [
-      { id: 'intro', label: 'Intro Call', duration: 20, description: 'Quick intro + goals alignment' },
       { id: 'standard', label: 'Standard Session', duration: 30, description: 'Focused discussion with actionable next steps' },
+      { id: 'intro', label: 'Intro Call', duration: 20, description: 'Quick intro + goals alignment' },
       { id: 'consult', label: 'Consulting Session', duration: 45, description: 'Deep dive into your product/UX challenge' },
       { id: 'strategy', label: 'Strategy Session', duration: 60, description: 'Roadmap and action planning' }
     ]
