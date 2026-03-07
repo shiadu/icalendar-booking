@@ -143,6 +143,13 @@
         els.tzSelect.innerHTML = opts.map(t=>`<option value="${t}">${t}</option>`).join('');
         els.tzSelect.value = opts.includes(viewerTimeZone) ? viewerTimeZone : 'UTC';
       }
+      function getActiveDaysByTimezone(){
+        const chinaTZ = (config?.chinaSchedule?.timezones || []);
+        if (chinaTZ.includes(viewerTimeZone)) {
+          return config?.chinaSchedule?.bookingDays || [2,3,4];
+        }
+        return config?.bookingDays || [2,3,4];
+      }
       function validateEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
       function setStatus(el,msg,ok=true){ el.className='status '+(ok?'ok':'err'); el.textContent=msg; }
       function updateBookEnabled(){ els.book.disabled = !(els.name.value.trim() && validateEmail(els.email.value.trim()) && selectedIso); }
@@ -240,8 +247,11 @@
       els.calNext.addEventListener('click',()=>{ currentMonth = new Date(currentMonth.getFullYear(),currentMonth.getMonth()+1,1); renderCalendar(); });
       els.tzSelect.addEventListener('change',()=>{
         viewerTimeZone = els.tzSelect.value;
+        activeBookingDays = getActiveDaysByTimezone();
         selectedIso = null;
+        els.date.value = '';
         els.slots.innerHTML = '';
+        renderCalendar();
         if (els.date.value) loadAvailability();
       });
 
@@ -266,7 +276,7 @@
         els.brandTitle.textContent=`Book with ${config.hostName || 'Shia Du'}`;
         renderTimezonePicker();
 
-        activeBookingDays = config.bookingDays || [2,3,4];
+        activeBookingDays = getActiveDaysByTimezone();
 
         renderEventTypes(config.eventTypes||[]);
         renderCalendar();

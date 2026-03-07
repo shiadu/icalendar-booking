@@ -23,7 +23,7 @@ const CHINA_BOOKING_DAYS = (process.env.CHINA_BOOKING_DAYS || '2,3,4').split(','
 const CHINA_START_HOUR = Number(process.env.CHINA_BOOKING_START_HOUR || 20); // 8 PM ET
 const CHINA_START_MINUTE = Number(process.env.CHINA_BOOKING_START_MINUTE || 0);
 const CHINA_END_HOUR = Number(process.env.CHINA_BOOKING_END_HOUR || 22); // 10 PM ET
-const CHINA_END_MINUTE = Number(process.env.CHINA_BOOKING_END_MINUTE || 30); // 10:30 PM ET
+const CHINA_END_MINUTE = Number(process.env.CHINA_BOOKING_END_MINUTE || 0); // 10:00 PM ET
 
 // New controls (more Calendly-like)
 const MIN_NOTICE_HOURS = Number(process.env.MIN_NOTICE_HOURS || 24);
@@ -76,8 +76,18 @@ function isChinaTimezone(viewerTimezone = '') {
   ].includes(tz);
 }
 
-function getSchedule(_viewerTimezone = '') {
-  // Unified schedule for all users regardless of timezone
+function getSchedule(viewerTimezone = '') {
+  if (isChinaTimezone(viewerTimezone)) {
+    return {
+      days: CHINA_BOOKING_DAYS,
+      startHour: CHINA_START_HOUR,
+      startMinute: CHINA_START_MINUTE,
+      endHour: CHINA_END_HOUR,
+      endMinute: CHINA_END_MINUTE,
+      label: 'china-special'
+    };
+  }
+
   return {
     days: BOOKING_DAYS,
     startHour: START_HOUR,
@@ -242,6 +252,14 @@ app.get('/api/config', (_req, res) => {
     durations: [20, 30, 45, 60],
     defaultDuration: DEFAULT_DURATION,
     defaultEventTypeId: DEFAULT_EVENT_TYPE_ID,
+    chinaSchedule: {
+      timezones: ['Asia/Shanghai','Asia/Chongqing','Asia/Harbin','Asia/Urumqi','Asia/Hong_Kong','Asia/Macau'],
+      bookingDays: CHINA_BOOKING_DAYS,
+      startHour: CHINA_START_HOUR,
+      startMinute: CHINA_START_MINUTE,
+      endHour: CHINA_END_HOUR,
+      endMinute: CHINA_END_MINUTE
+    },
     eventTypes: [
       { id: 'intro', label: 'Intro Call', duration: 20, description: 'Quick intro + goals alignment' },
       { id: 'standard', label: 'Standard Session', duration: 30, description: 'Focused discussion with actionable next steps' },
