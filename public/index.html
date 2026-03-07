@@ -235,7 +235,7 @@
             els.slots.innerHTML = '';
             setStatus(els.slotStatus, 'Loading availability...', true);
             setStep(2);
-            if (els.date.value) els.load.click();
+            if (els.date.value) loadAvailability();
           };
           els.eventTypes.appendChild(div);
         });
@@ -304,7 +304,7 @@
             renderCalendarMonth();
             setStatus(els.slotStatus, 'Loading availability...', true);
             updateBookEnabled();
-            els.load.click();
+            loadAvailability();
           };
         });
       }
@@ -338,7 +338,7 @@
         // auto-load initial slots without extra click
         if (els.date.value) {
           setStatus(els.slotStatus, 'Loading availability...', true);
-          els.load.click();
+          loadAvailability();
         }
       }
 
@@ -350,7 +350,7 @@
         });
       }
 
-      els.load.onclick = async () => {
+      async function loadAvailability(){
         const date = els.date.value;
         const duration = Number((selectedEventType && selectedEventType.duration) || els.duration.value || 30);
 
@@ -396,7 +396,9 @@
 
         els.load.disabled = false;
         setStatus(els.slotStatus, 'Select a time slot.', true);
-      };
+      }
+
+      els.load.onclick = loadAvailability;
 
       els.clearSelection.onclick = () => {
         selectedIso = null;
