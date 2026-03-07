@@ -7,6 +7,7 @@ A lightweight booking tool with:
 - Google Calendar sync to prevent double-booking
 - Min notice, buffer, and max meetings/day controls
 - Automatic confirmation emails (Google invite + optional custom branded email)
+- AI-agent-friendly API endpoints for health, schema, availability, and booking
 
 ## 1) Setup
 
@@ -51,6 +52,16 @@ Open: `http://localhost:3000`
 
 ### Option B: Railway/Fly.io
 - Same env vars + start command
+
+## Agent-friendly API
+- `GET /api/agent/health` → health check
+- `GET /api/agent/schema` → machine-readable endpoint schema
+- `POST /api/agent/availability` → availability for a date/duration
+- `POST /api/agent/book` → create booking
+
+Auth (optional):
+- Set `AGENT_API_KEY` in `.env`
+- Send `Authorization: Bearer <AGENT_API_KEY>` for `/api/agent/*`
 
 ## Notes
 - Time zone defaults to `America/New_York`.

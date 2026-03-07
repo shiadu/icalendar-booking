@@ -22,6 +22,21 @@ const MAX_MEETINGS_PER_DAY = Number(process.env.MAX_MEETINGS_PER_DAY || 12);
 
 const BRAND_NAME = process.env.BRAND_NAME || 'iCalendar';
 const HOST_NAME = process.env.HOST_NAME || 'Shia';
+const AGENT_API_KEY = process.env.AGENT_API_KEY || '';
+
+function requireAgentAuth(req, res, next) {
+  if (!AGENT_API_KEY) return next(); // open by default unless key is set
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (token !== AGENT_API_KEY) {
+    return res.status(401).json({ ok: false, code: 'UNAUTHORIZED', error: 'Invalid or missing agent token.' });
+  }
+  next();
+}
+
+function errorPayload(code, message, details = {}) {
+  return { ok: false, code, error: message, details };
+}
 
 function getAuth() {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, GOOGLE_REFRESH_TOKEN } = process.env;
@@ -185,6 +200,142 @@ app.get('/api/config', (_req, res) => {
       { id: 'strategy', label: 'Strategy Session', duration: 60, description: 'Roadmap and action planning' }
     ]
   });
+});
+
+app.get('/api/agent/health', requireAgentAuth, (_req, res) => {
+  res.json({ ok: true, service: 'icalendar', status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/agent/schema', requireAgentAuth, (_req, res) => {
+  res.json({
+    ok: true,
+    authRequired: !!AGENT_API_KEY,
+    endpoints: {
+      health: { method: 'GET', path: '/api/agent/health' },
+      config: { method: 'GET', path: '/api/config' },
+      availability: {
+        method: 'POST',
+        path: '/api/agent/availability',
+        body: { date: 'YYYY-MM-DD', duration: 30, viewerTimezone: 'America/Los_Angeles (optional)' }
+      },
+      book: {
+        method: 'POST',
+        path: '/api/agent/book',
+        body: { name: 'Jane Doe', email: 'jane@email.com', start: 'ISO datetime', duration: 30, eventTypeLabel: 'Standard Session' }
+      }
+    }
+  });
+});
+
+app.post('/api/agent/availability', requireAgentAuth, async (req, res) => {
+  try {
+    const { date, duration, viewerTimezone } = req.body || {};
+    const durationMin = Number(duration || 30);
+
+    if (!date) return res.status(400).json(errorPayload('INVALID_INPUT', 'date is required', { expected: 'YYYY-MM-DD' }));
+    if (![15, 20, 30, 45, 60].includes(durationMin)) {
+      return res.status(400).json(errorPayload('INVALID_DURATION', 'Duration must be one of 15,20,30,45,60.'));
+    }
+
+    let slots = getDaySlots(date, durationMin);
+    if (!slots.length) return res.json({ ok: true, slots: [], reason: 'outside_host_availability' });
+
+    slots = applyMinNotice(slots);
+    if (!slots.length) return res.json({ ok: true, slots: [], reason: 'min_notice_window' });
+
+    const busyRaw = await getBusyWindows(slots[0].start, slots[slots.length - 1].end);
+    const busy = expandBusyWindowsForBuffer(busyRaw);
+    const available = slots.filter(s => !busy.some(b => overlaps(s.start, s.end, b.start, b.end)));
+
+    const safeViewerTZ = viewerTimezone || TZ;
+
+    res.json({
+      ok: true,
+      slots: available.map(s => ({
+        start: s.start.toISOString(),
+        end: s.end.toISOString(),
+        hostLabel: formatInTimeZone(s.start, TZ, 'EEE, MMM d · h:mm a zzz'),
+        viewerLabel: formatInTimeZone(s.start, safeViewerTZ, 'EEE, MMM d · h:mm a zzz')
+      }))
+    });
+  } catch (e) {
+    res.status(500).json(errorPayload('AVAILABILITY_FAILED', e.message || 'Failed to load availability'));
+  }
+});
+
+app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
+  try {
+    const { name, email, start, duration, eventTypeLabel } = req.body || {};
+    const durationMin = Number(duration || 30);
+
+    if (!name || !email || !start) {
+      return res.status(400).json(errorPayload('INVALID_INPUT', 'name, email, start are required'));
+    }
+
+    const startDate = new Date(start);
+    const endDate = addMinutes(startDate, durationMin);
+
+    const minStart = addHours(new Date(), MIN_NOTICE_HOURS);
+    if (isBefore(startDate, minStart)) {
+      return res.status(409).json(errorPayload('MIN_NOTICE', `Bookings must be at least ${MIN_NOTICE_HOURS} hour(s) in advance.`));
+    }
+
+    const meetingCount = await getMeetingCountForLocalDay(startDate);
+    if (meetingCount >= MAX_MEETINGS_PER_DAY) {
+      return res.status(409).json(errorPayload('DAILY_LIMIT', 'Daily booking limit reached. Please choose another day.'));
+    }
+
+    const busyRaw = await getBusyWindows(startDate, endDate);
+    const busy = expandBusyWindowsForBuffer(busyRaw);
+    if (busy.some(b => overlaps(startDate, endDate, b.start, b.end))) {
+      return res.status(409).json(errorPayload('SLOT_TAKEN', 'That slot was just booked. Pick another time.'));
+    }
+
+    const calendar = getCalendarClient();
+    const calendarId = getCalendarId();
+    const summary = `${eventTypeLabel || 'Meeting'} with ${name}`;
+
+    const event = await calendar.events.insert({
+      calendarId,
+      sendUpdates: 'all',
+      requestBody: {
+        summary,
+        description: `Booked via ${BRAND_NAME}\nHost: ${HOST_NAME}\nName: ${name}\nEmail: ${email}`,
+        start: { dateTime: startDate.toISOString(), timeZone: TZ },
+        end: { dateTime: endDate.toISOString(), timeZone: TZ },
+        attendees: [{ email }]
+      }
+    });
+
+    let customEmail = { sent: false, reason: 'not_attempted' };
+    try {
+      customEmail = await sendCustomConfirmationEmail({
+        name,
+        email,
+        startDate,
+        endDate,
+        eventLink: event.data.htmlLink,
+        eventTypeLabel
+      });
+    } catch (mailErr) {
+      customEmail = { sent: false, reason: mailErr.message || 'mail_failed' };
+    }
+
+    res.json({
+      ok: true,
+      booking: {
+        eventId: event.data.id,
+        htmlLink: event.data.htmlLink,
+        hostTimezone: TZ,
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        eventTypeLabel: eventTypeLabel || 'Meeting'
+      },
+      customEmail
+    });
+  } catch (e) {
+    res.status(500).json(errorPayload('BOOKING_FAILED', e.message || 'Failed to book event'));
+  }
 });
 
 app.get('/api/availability', async (req, res) => {
