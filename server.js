@@ -255,7 +255,7 @@ app.get('/api/config', (_req, res) => {
     minNoticeHours: MIN_NOTICE_HOURS,
     bufferMinutes: BUFFER_MINUTES,
     maxMeetingsPerDay: MAX_MEETINGS_PER_DAY,
-    durations: [15, 20, 30, 45, 60],
+    durations: [20, 30, 45, 60],
     defaultDuration: DEFAULT_DURATION,
     defaultEventTypeId: DEFAULT_EVENT_TYPE_ID,
     eventTypes: [
@@ -299,8 +299,8 @@ app.post('/api/agent/availability', requireAgentAuth, async (req, res) => {
     const schedule = getSchedule(viewerTimezone);
 
     if (!date) return res.status(400).json(errorPayload('INVALID_INPUT', 'date is required', { expected: 'YYYY-MM-DD' }));
-    if (![15, 20, 30, 45, 60].includes(durationMin)) {
-      return res.status(400).json(errorPayload('INVALID_DURATION', 'Duration must be one of 15,20,30,45,60.'));
+    if (![20, 30, 45, 60].includes(durationMin)) {
+      return res.status(400).json(errorPayload('INVALID_DURATION', 'Duration must be one of 20,30,45,60.'));
     }
 
     let slots = getDaySlots(date, durationMin, schedule);
@@ -424,7 +424,7 @@ app.get('/api/availability', async (req, res) => {
     const durationMin = Number(duration || 30);
     const schedule = getSchedule(viewerTimezone);
     if (!date) return res.status(400).json({ error: 'date is required' });
-    if (![15, 20, 30, 45, 60].includes(durationMin)) {
+    if (![20, 30, 45, 60].includes(durationMin)) {
       return res.status(400).json({ error: 'invalid duration' });
     }
 
