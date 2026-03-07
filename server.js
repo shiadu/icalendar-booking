@@ -143,12 +143,19 @@ function expandBusyWindowsForBuffer(busy) {
 
 function applyMinNotice(slots) {
   const now = new Date();
-  const minStart = addHours(now, MIN_NOTICE_HOURS);
   const todayYMD = formatInTimeZone(now, TZ, 'yyyy-MM-dd');
 
   return slots.filter(s => {
     const slotYMD = formatInTimeZone(s.start, TZ, 'yyyy-MM-dd');
-    if (slotYMD === todayYMD) return false; // explicitly disable same-day booking
+
+    // Always disable same-day booking
+    if (slotYMD === todayYMD) return false;
+
+    // For 24h+ notice mode, allow full next-day window (no rolling-time cutoff)
+    if (MIN_NOTICE_HOURS >= 24) return true;
+
+    // For shorter notice windows (<24h), keep rolling cutoff
+    const minStart = addHours(now, MIN_NOTICE_HOURS);
     return !isBefore(s.start, minStart);
   });
 }
