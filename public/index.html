@@ -115,7 +115,7 @@
           <input id="duration" type="hidden" />
 
           <div class="actions">
-            <button id="load">Find available times</button>
+            <button id="load" class="hidden" aria-hidden="true" tabindex="-1">Find available times</button>
             <button id="clearSelection" class="secondary" type="button">Clear</button>
           </div>
           <div id="slots" class="slots"></div>
@@ -229,8 +229,9 @@
             selectedIso = null;
             els.selected.value = '';
             els.slots.innerHTML = '';
-            setStatus(els.slotStatus, 'Meeting type selected. Click “Find available times”.', true);
+            setStatus(els.slotStatus, 'Loading availability...', true);
             setStep(2);
+            if (els.date.value) els.load.click();
           };
           els.eventTypes.appendChild(div);
         });
@@ -328,6 +329,12 @@
           els.duration.value = String(selectedEventType.duration);
         } else {
           els.duration.value = String(config.defaultDuration || 30);
+        }
+
+        // auto-load initial slots without extra click
+        if (els.date.value) {
+          setStatus(els.slotStatus, 'Loading availability...', true);
+          els.load.click();
         }
       }
 
