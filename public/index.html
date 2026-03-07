@@ -283,10 +283,13 @@
         els.heroSub.textContent = `${config.brandName || 'Booking'} • Your timezone: ${viewerTimeZone} • Host timezone: ${config.timezone}`;
         const isChinaViewer = (config.chinaSchedule?.timezones || []).includes(viewerTimeZone);
         const bufferText = Number(config.bufferMinutes) > 0 ? `${config.bufferMinutes} minute gap between meetings` : 'No gap between meetings';
+        const noticeText = Number(config.minNoticeHours) >= 24
+          ? 'Book at least 1 day in advance (same-day booking disabled)'
+          : `Book at least ${config.minNoticeHours} hours ahead`;
         if (isChinaViewer) {
-          els.rulesBadge.textContent = `China timezone detected: Tue–Thu, 8:00–10:30 PM ET • Book at least ${config.minNoticeHours} hours ahead`;
+          els.rulesBadge.textContent = `China timezone detected: Tue–Thu, 8:00–10:30 PM ET • ${noticeText}`;
         } else {
-          els.rulesBadge.textContent = `Book at least ${config.minNoticeHours} hours ahead • ${bufferText} • Up to ${config.maxMeetingsPerDay} meetings per day`;
+          els.rulesBadge.textContent = `${noticeText} • ${bufferText} • Up to ${config.maxMeetingsPerDay} meetings per day`;
         }
 
         renderDurations(config.durations || [15,20,30,45,60]);

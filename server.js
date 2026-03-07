@@ -25,7 +25,7 @@ const CHINA_END_HOUR = Number(process.env.CHINA_BOOKING_END_HOUR || 22); // 10 P
 const CHINA_END_MINUTE = Number(process.env.CHINA_BOOKING_END_MINUTE || 30); // 10:30 PM ET
 
 // New controls (more Calendly-like)
-const MIN_NOTICE_HOURS = Number(process.env.MIN_NOTICE_HOURS || 2);
+const MIN_NOTICE_HOURS = Number(process.env.MIN_NOTICE_HOURS || 24);
 const BUFFER_MINUTES = Number(process.env.BUFFER_MINUTES || 0);
 const MAX_MEETINGS_PER_DAY = Number(process.env.MAX_MEETINGS_PER_DAY || 12);
 
@@ -149,8 +149,15 @@ function expandBusyWindowsForBuffer(busy) {
 }
 
 function applyMinNotice(slots) {
-  const minStart = addHours(new Date(), MIN_NOTICE_HOURS);
-  return slots.filter(s => !isBefore(s.start, minStart));
+  const now = new Date();
+  const minStart = addHours(now, MIN_NOTICE_HOURS);
+  const todayYMD = formatInTimeZone(now, TZ, 'yyyy-MM-dd');
+
+  return slots.filter(s => {
+    const slotYMD = formatInTimeZone(s.start, TZ, 'yyyy-MM-dd');
+    if (slotYMD === todayYMD) return false; // explicitly disable same-day booking
+    return !isBefore(s.start, minStart);
+  });
 }
 
 function getMailer() {
@@ -338,9 +345,15 @@ app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
       return res.status(409).json(errorPayload('OUTSIDE_SCHEDULE', 'Selected time is outside allowed availability for your timezone.'));
     }
 
-    const minStart = addHours(new Date(), MIN_NOTICE_HOURS);
+    const now = new Date();
+    const minStart = addHours(now, MIN_NOTICE_HOURS);
+    const todayYMD = formatInTimeZone(now, TZ, 'yyyy-MM-dd');
+    const bookingYMD = formatInTimeZone(startDate, TZ, 'yyyy-MM-dd');
+    if (bookingYMD === todayYMD) {
+      return res.status(409).json(errorPayload('SAME_DAY_DISABLED', 'Same-day bookings are not allowed. Please choose a future date.'));
+    }
     if (isBefore(startDate, minStart)) {
-      return res.status(409).json(errorPayload('MIN_NOTICE', `Bookings must be at least ${MIN_NOTICE_HOURS} hour(s) in advance.`));
+      return res.status(409).json(errorPayload('MIN_NOTICE', 'Bookings must be at least 1 day in advance.'));
     }
 
     const meetingCount = await getMeetingCountForLocalDay(startDate);
@@ -453,10 +466,16 @@ app.post('/api/book', async (req, res) => {
       return res.status(409).json({ error: 'Selected time is outside allowed availability for your timezone.' });
     }
 
-    // Min notice re-check
-    const minStart = addHours(new Date(), MIN_NOTICE_HOURS);
+    // Min notice + disable same-day booking
+    const now = new Date();
+    const minStart = addHours(now, MIN_NOTICE_HOURS);
+    const todayYMD = formatInTimeZone(now, TZ, 'yyyy-MM-dd');
+    const bookingYMD = formatInTimeZone(startDate, TZ, 'yyyy-MM-dd');
+    if (bookingYMD === todayYMD) {
+      return res.status(409).json({ error: 'Same-day bookings are not allowed. Please choose a future date.' });
+    }
     if (isBefore(startDate, minStart)) {
-      return res.status(409).json({ error: `Bookings must be at least ${MIN_NOTICE_HOURS} hour(s) in advance.` });
+      return res.status(409).json({ error: 'Bookings must be at least 1 day in advance.' });
     }
 
     // Daily cap check
