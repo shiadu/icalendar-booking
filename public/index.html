@@ -145,6 +145,7 @@
       let selectedIso = null;
       let selectedLabel = '';
       let selectedEventType = null;
+      const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local Time';
 
       function setStatus(el, msg, ok=true){
         el.className = 'status ' + (ok ? 'ok' : 'err');
@@ -241,7 +242,7 @@
         config = await res.json();
 
         els.brandTitle.textContent = `Book with ${config.hostName || 'us'}`;
-        els.heroSub.textContent = `${config.brandName || 'Booking'} • ${config.timezone} timezone`;
+        els.heroSub.textContent = `${config.brandName || 'Booking'} • Your timezone: ${viewerTimeZone} • Host timezone: ${config.timezone}`;
         els.rulesBadge.textContent = `Notice: ${config.minNoticeHours}h · Buffer: ${config.bufferMinutes}m · Max/day: ${config.maxMeetingsPerDay}`;
 
         renderDurations(config.durations || [15,20,30,45,60]);
@@ -250,6 +251,14 @@
 
         // default duration follows selected event type
         if (selectedEventType) els.duration.value = String(selectedEventType.duration);
+      }
+
+      function formatForViewer(iso){
+        const d = new Date(iso);
+        return d.toLocaleString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric',
+          hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
+        });
       }
 
       els.load.onclick = async () => {
@@ -275,13 +284,14 @@
           const b = document.createElement('button');
           b.type = 'button';
           b.className = 'slot';
-          b.textContent = s.label;
+          const viewerLabel = formatForViewer(s.start);
+          b.innerHTML = `<div>${viewerLabel}</div><div class="muted" style="font-size:12px">Host time: ${s.hostLabel}</div>`;
           b.onclick = () => {
             document.querySelectorAll('.slot').forEach(x => x.classList.remove('active'));
             b.classList.add('active');
             selectedIso = s.start;
-            selectedLabel = s.label;
-            els.selected.value = s.label;
+            selectedLabel = viewerLabel;
+            els.selected.value = viewerLabel;
           };
           els.slots.appendChild(b);
         });

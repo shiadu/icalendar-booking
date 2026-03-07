@@ -211,7 +211,7 @@ app.get('/api/availability', async (req, res) => {
       slots: available.map(s => ({
         start: s.start.toISOString(),
         end: s.end.toISOString(),
-        label: formatInTimeZone(s.start, TZ, 'EEE, MMM d · h:mm a zzz')
+        hostLabel: formatInTimeZone(s.start, TZ, 'EEE, MMM d · h:mm a zzz')
       }))
     });
   } catch (e) {
