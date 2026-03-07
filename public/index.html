@@ -78,7 +78,7 @@
       <div class="hero">
         <h1 id="brandTitle">Book a meeting</h1>
         <p id="heroSub">Pick a time that works for both of us.</p>
-        <span class="badge" id="rulesBadge">Loading booking rules...</span>
+
       </div>
       <div class="stepper" id="stepper">
         <span class="step active" id="step1">1. Meeting type</span>
@@ -140,7 +140,7 @@
       const els = {
         brandTitle: document.getElementById('brandTitle'),
         heroSub: document.getElementById('heroSub'),
-        rulesBadge: document.getElementById('rulesBadge'),
+
         eventTypes: document.getElementById('eventTypes'),
         date: document.getElementById('date'),
         dateChoices: document.getElementById('dateChoices'),
@@ -281,16 +281,6 @@
 
         els.brandTitle.textContent = `Book with ${config.hostName || 'us'}`;
         els.heroSub.textContent = `${config.brandName || 'Booking'} • Your timezone: ${viewerTimeZone} • Host timezone: ${config.timezone}`;
-        const isChinaViewer = (config.chinaSchedule?.timezones || []).includes(viewerTimeZone);
-        const bufferText = Number(config.bufferMinutes) > 0 ? `${config.bufferMinutes} minute gap between meetings` : 'No gap between meetings';
-        const noticeText = Number(config.minNoticeHours) >= 24
-          ? 'Book at least 1 day in advance (same-day booking disabled)'
-          : `Book at least ${config.minNoticeHours} hours ahead`;
-        if (isChinaViewer) {
-          els.rulesBadge.textContent = `China timezone detected: Tue–Thu, 8:00–10:30 PM ET • ${noticeText}`;
-        } else {
-          els.rulesBadge.textContent = `${noticeText} • ${bufferText} • Up to ${config.maxMeetingsPerDay} meetings per day`;
-        }
 
         renderDurations(config.durations || [15,20,30,45,60]);
         renderEventTypes(config.eventTypes || []);
