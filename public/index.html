@@ -47,6 +47,7 @@
       .dates{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:8px}
       .date-btn{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:left}
       .date-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+      .date-btn.disabled{background:#f1f1f1;color:#a5a5a5;border-color:#e2e2e2;cursor:not-allowed;opacity:.9}
 
       .slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}
       .slot{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:left}
@@ -185,22 +186,31 @@
       function renderAvailableDates(bookingDay){
         els.dateChoices.innerHTML = '';
         const today = new Date();
-        const dates = [];
-        let d = new Date(today);
-        for(let i=0; i<90 && dates.length<10; i++){
-          const test = new Date(d);
-          test.setDate(today.getDate()+i);
-          if(test.getDay() === bookingDay) dates.push(test);
-        }
 
-        dates.forEach((dt, idx) => {
+        let firstAvailableYMD = '';
+
+        // Show next 21 days: available day selectable, others greyed out
+        for(let i=0; i<21; i++){
+          const dt = new Date(today);
+          dt.setDate(today.getDate()+i);
+          const isAvailable = dt.getDay() === bookingDay;
+
           const btn = document.createElement('button');
           btn.type='button';
-          btn.className='date-btn' + (idx===0 ? ' active':'');
+          btn.className='date-btn' + (isAvailable ? '' : ' disabled');
+
           const label = dt.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
           btn.textContent = label;
+
           const ymd = toLocalYMD(dt);
+
+          if (isAvailable && !firstAvailableYMD) {
+            firstAvailableYMD = ymd;
+            btn.classList.add('active');
+          }
+
           btn.onclick = () => {
+            if (!isAvailable) return;
             document.querySelectorAll('.date-btn').forEach(x=>x.classList.remove('active'));
             btn.classList.add('active');
             els.date.value = ymd;
@@ -209,9 +219,11 @@
             els.slots.innerHTML = '';
             setStatus(els.slotStatus, 'Date selected. Click “Find available times”.', true);
           };
+
           els.dateChoices.appendChild(btn);
-          if(idx===0) els.date.value = ymd;
-        });
+        }
+
+        els.date.value = firstAvailableYMD;
       }
 
       function renderDurations(durations){
