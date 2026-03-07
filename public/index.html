@@ -44,6 +44,10 @@
       button.secondary{background:#fff;color:var(--text);border:1px solid var(--line)}
       button:focus,input:focus,select:focus{outline:2px solid rgba(104,197,211,.5);outline-offset:1px}
 
+      .dates{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:8px}
+      .date-btn{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:left}
+      .date-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
       .slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}
       .slot{border:1px solid var(--line);padding:10px;border-radius:10px;background:#fff;cursor:pointer;text-align:left}
       .slot.active{background:var(--primary);color:#fff;border-color:var(--primary)}
@@ -76,8 +80,9 @@
           <div id="eventTypes" class="event-grid"></div>
 
           <h2 style="margin-top:16px">2) Pick date and time</h2>
-          <label>Date</label>
-          <input id="date" type="date" />
+          <label>Available dates</label>
+          <div id="dateChoices" class="dates"></div>
+          <input id="date" type="hidden" />
 
           <label>Duration</label>
           <select id="duration"></select>
@@ -120,6 +125,7 @@
         rulesBadge: document.getElementById('rulesBadge'),
         eventTypes: document.getElementById('eventTypes'),
         date: document.getElementById('date'),
+        dateChoices: document.getElementById('dateChoices'),
         duration: document.getElementById('duration'),
         load: document.getElementById('load'),
         slots: document.getElementById('slots'),
@@ -169,6 +175,45 @@
         }
       }
 
+      function toLocalYMD(d){
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${day}`;
+      }
+
+      function renderAvailableDates(bookingDay){
+        els.dateChoices.innerHTML = '';
+        const today = new Date();
+        const dates = [];
+        let d = new Date(today);
+        for(let i=0; i<90 && dates.length<10; i++){
+          const test = new Date(d);
+          test.setDate(today.getDate()+i);
+          if(test.getDay() === bookingDay) dates.push(test);
+        }
+
+        dates.forEach((dt, idx) => {
+          const btn = document.createElement('button');
+          btn.type='button';
+          btn.className='date-btn' + (idx===0 ? ' active':'');
+          const label = dt.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
+          btn.textContent = label;
+          const ymd = toLocalYMD(dt);
+          btn.onclick = () => {
+            document.querySelectorAll('.date-btn').forEach(x=>x.classList.remove('active'));
+            btn.classList.add('active');
+            els.date.value = ymd;
+            selectedIso = null;
+            els.selected.value = '';
+            els.slots.innerHTML = '';
+            setStatus(els.slotStatus, 'Date selected. Click “Find available times”.', true);
+          };
+          els.dateChoices.appendChild(btn);
+          if(idx===0) els.date.value = ymd;
+        });
+      }
+
       function renderDurations(durations){
         els.duration.innerHTML = '';
         durations.forEach(d => {
@@ -189,6 +234,7 @@
 
         renderDurations(config.durations || [15,20,30,45,60]);
         renderEventTypes(config.eventTypes || []);
+        renderAvailableDates(config.bookingDay ?? 2);
 
         // default duration follows selected event type
         if (selectedEventType) els.duration.value = String(selectedEventType.duration);
