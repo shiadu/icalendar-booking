@@ -281,8 +281,13 @@
 
         els.brandTitle.textContent = `Book with ${config.hostName || 'us'}`;
         els.heroSub.textContent = `${config.brandName || 'Booking'} • Your timezone: ${viewerTimeZone} • Host timezone: ${config.timezone}`;
+        const isChinaViewer = (config.chinaSchedule?.timezones || []).includes(viewerTimeZone);
         const bufferText = Number(config.bufferMinutes) > 0 ? `${config.bufferMinutes} minute gap between meetings` : 'No gap between meetings';
-        els.rulesBadge.textContent = `Book at least ${config.minNoticeHours} hours ahead • ${bufferText} • Up to ${config.maxMeetingsPerDay} meetings per day`;
+        if (isChinaViewer) {
+          els.rulesBadge.textContent = `China timezone detected: Tue–Thu, 8:00–10:30 PM ET • Book at least ${config.minNoticeHours} hours ahead`;
+        } else {
+          els.rulesBadge.textContent = `Book at least ${config.minNoticeHours} hours ahead • ${bufferText} • Up to ${config.maxMeetingsPerDay} meetings per day`;
+        }
 
         renderDurations(config.durations || [15,20,30,45,60]);
         renderEventTypes(config.eventTypes || []);
@@ -314,7 +319,7 @@
         els.load.disabled = true;
         setStatus(els.slotStatus, 'Loading availability...', true);
 
-        const res = await fetch(`/api/availability?date=${encodeURIComponent(date)}&duration=${duration}`);
+        const res = await fetch(`/api/availability?date=${encodeURIComponent(date)}&duration=${duration}&viewerTimezone=${encodeURIComponent(viewerTimeZone)}`);
         const data = await res.json();
 
         if(!res.ok){
@@ -382,7 +387,8 @@
             email,
             start: selectedIso,
             duration,
-            eventTypeLabel: selectedEventType ? selectedEventType.label : 'Meeting'
+            eventTypeLabel: selectedEventType ? selectedEventType.label : 'Meeting',
+            viewerTimezone: viewerTimeZone
           })
         });
 

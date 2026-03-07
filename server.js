@@ -11,9 +11,18 @@ app.use(express.static('public'));
 
 const PORT = Number(process.env.PORT || 3000);
 const TZ = process.env.BOOKING_TIMEZONE || 'America/New_York';
-const BOOKING_DAYS = (process.env.BOOKING_DAYS || '2').split(',').map(x => Number(x.trim())).filter(x => !Number.isNaN(x)); // Tue=2,Wed=3,Thu=4
+const BOOKING_DAYS = (process.env.BOOKING_DAYS || '2,3,4').split(',').map(x => Number(x.trim())).filter(x => !Number.isNaN(x)); // Tue=2,Wed=3,Thu=4
 const START_HOUR = Number(process.env.BOOKING_START_HOUR || 13); // 1 PM
+const START_MINUTE = Number(process.env.BOOKING_START_MINUTE || 0);
 const END_HOUR = Number(process.env.BOOKING_END_HOUR || 18); // 6 PM
+const END_MINUTE = Number(process.env.BOOKING_END_MINUTE || 0);
+
+// Special schedule for users in China timezones
+const CHINA_BOOKING_DAYS = (process.env.CHINA_BOOKING_DAYS || '2,3,4').split(',').map(x => Number(x.trim())).filter(x => !Number.isNaN(x));
+const CHINA_START_HOUR = Number(process.env.CHINA_BOOKING_START_HOUR || 20); // 8 PM ET
+const CHINA_START_MINUTE = Number(process.env.CHINA_BOOKING_START_MINUTE || 0);
+const CHINA_END_HOUR = Number(process.env.CHINA_BOOKING_END_HOUR || 22); // 10 PM ET
+const CHINA_END_MINUTE = Number(process.env.CHINA_BOOKING_END_MINUTE || 30); // 10:30 PM ET
 
 // New controls (more Calendly-like)
 const MIN_NOTICE_HOURS = Number(process.env.MIN_NOTICE_HOURS || 2);
@@ -56,14 +65,49 @@ function getCalendarId() {
   return process.env.GOOGLE_CALENDAR_ID || 'primary';
 }
 
-function getDaySlots(dateStr, durationMin) {
-  // dateStr = YYYY-MM-DD interpreted in TZ
+function isChinaTimezone(viewerTimezone = '') {
+  const tz = String(viewerTimezone || '').trim();
+  return [
+    'Asia/Shanghai', 'Asia/Chongqing', 'Asia/Harbin', 'Asia/Urumqi',
+    'Asia/Hong_Kong', 'Asia/Macau', 'Asia/Taipei'
+  ].includes(tz);
+}
+
+function getSchedule(viewerTimezone = '') {
+  if (isChinaTimezone(viewerTimezone)) {
+    return {
+      days: CHINA_BOOKING_DAYS,
+      startHour: CHINA_START_HOUR,
+      startMinute: CHINA_START_MINUTE,
+      endHour: CHINA_END_HOUR,
+      endMinute: CHINA_END_MINUTE,
+      label: 'china-special'
+    };
+  }
+
+  return {
+    days: BOOKING_DAYS,
+    startHour: START_HOUR,
+    startMinute: START_MINUTE,
+    endHour: END_HOUR,
+    endMinute: END_MINUTE,
+    label: 'default'
+  };
+}
+
+function getDaySlots(dateStr, durationMin, schedule) {
+  // dateStr = YYYY-MM-DD interpreted in host TZ
   const baseLocal = `${dateStr}T00:00:00`;
-  const dayStart = fromZonedTime(`${dateStr}T${String(START_HOUR).padStart(2, '0')}:00:00`, TZ);
-  const dayEnd = fromZonedTime(`${dateStr}T${String(END_HOUR).padStart(2, '0')}:00:00`, TZ);
+  const sh = String(schedule.startHour).padStart(2, '0');
+  const sm = String(schedule.startMinute).padStart(2, '0');
+  const eh = String(schedule.endHour).padStart(2, '0');
+  const em = String(schedule.endMinute).padStart(2, '0');
+
+  const dayStart = fromZonedTime(`${dateStr}T${sh}:${sm}:00`, TZ);
+  const dayEnd = fromZonedTime(`${dateStr}T${eh}:${em}:00`, TZ);
 
   const dayCheck = toZonedTime(fromZonedTime(baseLocal, TZ), TZ);
-  if (!BOOKING_DAYS.includes(dayCheck.getDay())) return [];
+  if (!schedule.days.includes(dayCheck.getDay())) return [];
 
   const slots = [];
   let cur = dayStart;
@@ -188,7 +232,17 @@ app.get('/api/config', (_req, res) => {
     timezone: TZ,
     bookingDays: BOOKING_DAYS,
     startHour: START_HOUR,
+    startMinute: START_MINUTE,
     endHour: END_HOUR,
+    endMinute: END_MINUTE,
+    chinaSchedule: {
+      timezones: ['Asia/Shanghai','Asia/Chongqing','Asia/Harbin','Asia/Urumqi','Asia/Hong_Kong','Asia/Macau','Asia/Taipei'],
+      bookingDays: CHINA_BOOKING_DAYS,
+      startHour: CHINA_START_HOUR,
+      startMinute: CHINA_START_MINUTE,
+      endHour: CHINA_END_HOUR,
+      endMinute: CHINA_END_MINUTE
+    },
     minNoticeHours: MIN_NOTICE_HOURS,
     bufferMinutes: BUFFER_MINUTES,
     maxMeetingsPerDay: MAX_MEETINGS_PER_DAY,
@@ -221,7 +275,7 @@ app.get('/api/agent/schema', requireAgentAuth, (_req, res) => {
       book: {
         method: 'POST',
         path: '/api/agent/book',
-        body: { name: 'Jane Doe', email: 'jane@email.com', start: 'ISO datetime', duration: 30, eventTypeLabel: 'Standard Session' }
+        body: { name: 'Jane Doe', email: 'jane@email.com', start: 'ISO datetime', duration: 30, eventTypeLabel: 'Standard Session', viewerTimezone: 'Asia/Shanghai (optional)' }
       }
     }
   });
@@ -231,14 +285,15 @@ app.post('/api/agent/availability', requireAgentAuth, async (req, res) => {
   try {
     const { date, duration, viewerTimezone } = req.body || {};
     const durationMin = Number(duration || 30);
+    const schedule = getSchedule(viewerTimezone);
 
     if (!date) return res.status(400).json(errorPayload('INVALID_INPUT', 'date is required', { expected: 'YYYY-MM-DD' }));
     if (![15, 20, 30, 45, 60].includes(durationMin)) {
       return res.status(400).json(errorPayload('INVALID_DURATION', 'Duration must be one of 15,20,30,45,60.'));
     }
 
-    let slots = getDaySlots(date, durationMin);
-    if (!slots.length) return res.json({ ok: true, slots: [], reason: 'outside_host_availability' });
+    let slots = getDaySlots(date, durationMin, schedule);
+    if (!slots.length) return res.json({ ok: true, slots: [], reason: 'outside_host_availability', schedule: schedule.label });
 
     slots = applyMinNotice(slots);
     if (!slots.length) return res.json({ ok: true, slots: [], reason: 'min_notice_window' });
@@ -265,7 +320,7 @@ app.post('/api/agent/availability', requireAgentAuth, async (req, res) => {
 
 app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
   try {
-    const { name, email, start, duration, eventTypeLabel } = req.body || {};
+    const { name, email, start, duration, eventTypeLabel, viewerTimezone } = req.body || {};
     const durationMin = Number(duration || 30);
 
     if (!name || !email || !start) {
@@ -274,6 +329,14 @@ app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
 
     const startDate = new Date(start);
     const endDate = addMinutes(startDate, durationMin);
+
+    const schedule = getSchedule(viewerTimezone);
+    const dateYMD = formatInTimeZone(startDate, TZ, 'yyyy-MM-dd');
+    const validSlots = getDaySlots(dateYMD, durationMin, schedule);
+    const slotAllowed = validSlots.some(s => s.start.toISOString() === startDate.toISOString());
+    if (!slotAllowed) {
+      return res.status(409).json(errorPayload('OUTSIDE_SCHEDULE', 'Selected time is outside allowed availability for your timezone.'));
+    }
 
     const minStart = addHours(new Date(), MIN_NOTICE_HOURS);
     if (isBefore(startDate, minStart)) {
@@ -340,15 +403,16 @@ app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
 
 app.get('/api/availability', async (req, res) => {
   try {
-    const { date, duration } = req.query;
+    const { date, duration, viewerTimezone } = req.query;
     const durationMin = Number(duration || 30);
+    const schedule = getSchedule(viewerTimezone);
     if (!date) return res.status(400).json({ error: 'date is required' });
     if (![15, 20, 30, 45, 60].includes(durationMin)) {
       return res.status(400).json({ error: 'invalid duration' });
     }
 
-    let slots = getDaySlots(date, durationMin);
-    if (!slots.length) return res.json({ slots: [] });
+    let slots = getDaySlots(date, durationMin, schedule);
+    if (!slots.length) return res.json({ slots: [], schedule: schedule.label });
 
     slots = applyMinNotice(slots);
     if (!slots.length) return res.json({ slots: [] });
@@ -372,7 +436,7 @@ app.get('/api/availability', async (req, res) => {
 
 app.post('/api/book', async (req, res) => {
   try {
-    const { name, email, start, duration, eventTypeLabel } = req.body;
+    const { name, email, start, duration, eventTypeLabel, viewerTimezone } = req.body;
     const durationMin = Number(duration || 30);
     if (!name || !email || !start) {
       return res.status(400).json({ error: 'name, email, start are required' });
@@ -380,6 +444,14 @@ app.post('/api/book', async (req, res) => {
 
     const startDate = new Date(start);
     const endDate = addMinutes(startDate, durationMin);
+
+    const schedule = getSchedule(viewerTimezone);
+    const dateYMD = formatInTimeZone(startDate, TZ, 'yyyy-MM-dd');
+    const validSlots = getDaySlots(dateYMD, durationMin, schedule);
+    const slotAllowed = validSlots.some(s => s.start.toISOString() === startDate.toISOString());
+    if (!slotAllowed) {
+      return res.status(409).json({ error: 'Selected time is outside allowed availability for your timezone.' });
+    }
 
     // Min notice re-check
     const minStart = addHours(new Date(), MIN_NOTICE_HOURS);
