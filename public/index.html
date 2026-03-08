@@ -152,7 +152,11 @@
       }
       function validateEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
       function setStatus(el,msg,ok=true){ el.className='status '+(ok?'ok':'err'); el.textContent=msg; }
-      function updateBookEnabled(){ els.book.disabled = !(els.name.value.trim() && validateEmail(els.email.value.trim()) && selectedIso); }
+      function updateBookEnabled(){
+        const enabled = !!(els.name.value.trim() && validateEmail(els.email.value.trim()) && selectedIso);
+        els.book.disabled = !enabled;
+        return enabled;
+      }
       function formatRange(startIso,endIso){
         const opts = {hour:'numeric',minute:'2-digit',hour12:true,timeZone:viewerTimeZone};
         const start = new Date(startIso).toLocaleTimeString(undefined,opts).toLowerCase();
@@ -224,7 +228,7 @@
         if(!res.ok){ return setStatus(els.slotStatus,data.error||'Could not load slots.',false); }
         if(!data.slots?.length){ return setStatus(els.slotStatus,'No times available on this date. Try another day.',false); }
 
-        data.slots.forEach(s=>{
+        data.slots.forEach((s, idx)=>{
           const row = document.createElement('div'); row.className='slot-row';
           const btn = document.createElement('button'); btn.type='button'; btn.className='slot'; btn.textContent=formatRange(s.start,s.end);
           btn.onclick=()=>{
@@ -232,17 +236,44 @@
             btn.classList.add('active');
             selectedIso=s.start; updateBookEnabled();
             setStatus(els.slotStatus,'Time selected. Add your details to continue.',true);
-            els.name.focus();
+            if(!els.name.value.trim()) els.name.focus();
+            else if(!validateEmail(els.email.value.trim())) els.email.focus();
           };
           row.append(btn);
           els.slots.appendChild(row);
+
+          // Auto-select first available slot to reduce clicks
+          if (idx === 0) {
+            btn.click();
+          }
         });
-        setStatus(els.slotStatus,'Select a time slot.',true);
+
+        if (!selectedIso) {
+          setStatus(els.slotStatus,'Select a time slot.',true);
+        }
       }
 
       els.load.onclick = loadAvailability;
-      els.name.addEventListener('input',updateBookEnabled);
-      els.email.addEventListener('input',updateBookEnabled);
+      // Persist details to reduce repeat typing
+      const savedName = localStorage.getItem('ical_name') || '';
+      const savedEmail = localStorage.getItem('ical_email') || '';
+      if (savedName) els.name.value = savedName;
+      if (savedEmail) els.email.value = savedEmail;
+
+      els.name.addEventListener('input',()=>{
+        localStorage.setItem('ical_name', els.name.value.trim());
+        updateBookEnabled();
+      });
+      els.email.addEventListener('input',()=>{
+        localStorage.setItem('ical_email', els.email.value.trim());
+        updateBookEnabled();
+      });
+      els.email.addEventListener('keydown',(e)=>{
+        if (e.key === 'Enter' && updateBookEnabled()) {
+          e.preventDefault();
+          els.book.click();
+        }
+      });
       els.calPrev.addEventListener('click',()=>{ currentMonth = new Date(currentMonth.getFullYear(),currentMonth.getMonth()-1,1); renderCalendar(); });
       els.calNext.addEventListener('click',()=>{ currentMonth = new Date(currentMonth.getFullYear(),currentMonth.getMonth()+1,1); renderCalendar(); });
       els.tzSelect.addEventListener('change',()=>{
