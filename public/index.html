@@ -231,7 +231,7 @@
             document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));
             btn.classList.add('active');
             selectedIso=s.start; updateBookEnabled();
-            setStatus(els.slotStatus,'Great—time selected. Add your details below, then click Schedule meeting. A confirmation email will be sent automatically.',true);
+            setStatus(els.slotStatus,'Time selected. Add your details to continue.',true);
             els.name.focus();
           };
           row.append(btn);
@@ -259,7 +259,7 @@
         const name=els.name.value.trim(), email=els.email.value.trim();
         const duration=Number((selectedEventType && selectedEventType.duration)||els.duration.value||30);
         if(!name || !validateEmail(email) || !selectedIso){ return setStatus(els.bookStatus,'Please add your name, valid email, and select a time.',false); }
-        setStatus(els.bookStatus,'Confirming your meeting... You’ll receive a confirmation email automatically.',true); els.book.disabled=true;
+        setStatus(els.bookStatus,'Confirming your meeting...',true); els.book.disabled=true;
 
         const res = await fetch('/api/book',{
           method:'POST', headers:{'Content-Type':'application/json'},
@@ -267,7 +267,7 @@
         });
         const data = await res.json();
         if(!res.ok){ updateBookEnabled(); return setStatus(els.bookStatus,data.error||'Booking failed.',false); }
-        setStatus(els.bookStatus,'You’re booked! A confirmation email and calendar invite have been sent.',true);
+        setStatus(els.bookStatus,'You’re booked! Confirmation email and calendar invite sent.',true);
         if(data.htmlLink){ els.openEvent.style.display='block'; els.openEvent.onclick=()=>window.open(data.htmlLink,'_blank'); }
       };
 
