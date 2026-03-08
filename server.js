@@ -390,19 +390,21 @@ app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
       }
     });
 
-    let customEmail = { sent: false, reason: 'not_attempted' };
-    try {
-      customEmail = await sendCustomConfirmationEmail({
-        name,
-        email,
-        startDate,
-        endDate,
-        eventLink: event.data.htmlLink,
-        eventTypeLabel
-      });
-    } catch (mailErr) {
-      customEmail = { sent: false, reason: mailErr.message || 'mail_failed' };
-    }
+    // Respond fast, send custom email in background (better UX on free-tier hosting)
+    setImmediate(async () => {
+      try {
+        await sendCustomConfirmationEmail({
+          name,
+          email,
+          startDate,
+          endDate,
+          eventLink: event.data.htmlLink,
+          eventTypeLabel
+        });
+      } catch (_mailErr) {
+        // non-blocking: keep booking successful even if optional email fails
+      }
+    });
 
     res.json({
       ok: true,
@@ -414,7 +416,7 @@ app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
         end: endDate.toISOString(),
         eventTypeLabel: eventTypeLabel || 'Meeting'
       },
-      customEmail
+      customEmail: { sent: 'queued' }
     });
   } catch (e) {
     res.status(500).json(errorPayload('BOOKING_FAILED', e.message || 'Failed to book event'));
@@ -515,25 +517,27 @@ app.post('/api/book', async (req, res) => {
       }
     });
 
-    let customEmail = { sent: false, reason: 'not_attempted' };
-    try {
-      customEmail = await sendCustomConfirmationEmail({
-        name,
-        email,
-        startDate,
-        endDate,
-        eventLink: event.data.htmlLink,
-        eventTypeLabel
-      });
-    } catch (mailErr) {
-      customEmail = { sent: false, reason: mailErr.message || 'mail_failed' };
-    }
+    // Respond fast, send custom email in background (better UX on free-tier hosting)
+    setImmediate(async () => {
+      try {
+        await sendCustomConfirmationEmail({
+          name,
+          email,
+          startDate,
+          endDate,
+          eventLink: event.data.htmlLink,
+          eventTypeLabel
+        });
+      } catch (_mailErr) {
+        // non-blocking
+      }
+    });
 
     res.json({
       ok: true,
       eventId: event.data.id,
       htmlLink: event.data.htmlLink,
-      customEmail
+      customEmail: { sent: 'queued' }
     });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Failed to book event' });
