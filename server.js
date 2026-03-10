@@ -37,6 +37,15 @@ const DEFAULT_EVENT_TYPE_ID = process.env.DEFAULT_EVENT_TYPE_ID || 'standard';
 const CALENDAR_EVENT_PREFIX = process.env.CALENDAR_EVENT_PREFIX || 'iCalendar';
 const AGENT_API_KEY = process.env.AGENT_API_KEY || '';
 
+// Zoom integration (optional)
+const ZOOM_ACCOUNT_ID = process.env.ZOOM_ACCOUNT_ID || '';
+const ZOOM_CLIENT_ID = process.env.ZOOM_CLIENT_ID || '';
+const ZOOM_CLIENT_SECRET = process.env.ZOOM_CLIENT_SECRET || '';
+const ZOOM_USER_ID = process.env.ZOOM_USER_ID || 'me';
+const ZOOM_FALLBACK_MEETING_URL = process.env.ZOOM_FALLBACK_MEETING_URL || '';
+
+let zoomTokenCache = { accessToken: '', expiresAt: 0 };
+
 function requireAgentAuth(req, res, next) {
   if (!AGENT_API_KEY) return next(); // open by default unless key is set
   const authHeader = req.headers.authorization || '';
@@ -179,7 +188,76 @@ function getMailer() {
   });
 }
 
-async function sendCustomConfirmationEmail({ name, email, startDate, endDate, eventLink, eventTypeLabel }) {
+async function getZoomAccessToken() {
+  if (!ZOOM_ACCOUNT_ID || !ZOOM_CLIENT_ID || !ZOOM_CLIENT_SECRET) return null;
+
+  const now = Date.now();
+  if (zoomTokenCache.accessToken && zoomTokenCache.expiresAt - now > 60_000) {
+    return zoomTokenCache.accessToken;
+  }
+
+  const basic = Buffer.from(`${ZOOM_CLIENT_ID}:${ZOOM_CLIENT_SECRET}`).toString('base64');
+  const url = `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${encodeURIComponent(ZOOM_ACCOUNT_ID)}`;
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${basic}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  });
+
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`Zoom token failed: ${resp.status} ${txt}`);
+  }
+
+  const data = await resp.json();
+  zoomTokenCache = {
+    accessToken: data.access_token,
+    expiresAt: Date.now() + (Number(data.expires_in || 3600) * 1000)
+  };
+  return zoomTokenCache.accessToken;
+}
+
+async function createZoomMeeting({ topic, startDate, durationMin }) {
+  try {
+    const token = await getZoomAccessToken();
+    if (!token) return { joinUrl: ZOOM_FALLBACK_MEETING_URL || null, mode: ZOOM_FALLBACK_MEETING_URL ? 'fallback' : 'none' };
+
+    const resp = await fetch(`https://api.zoom.us/v2/users/${encodeURIComponent(ZOOM_USER_ID)}/meetings`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        topic,
+        type: 2,
+        start_time: startDate.toISOString(),
+        duration: durationMin,
+        timezone: TZ,
+        settings: {
+          waiting_room: true,
+          join_before_host: false,
+          mute_upon_entry: true
+        }
+      })
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`Zoom create failed: ${resp.status} ${txt}`);
+    }
+
+    const data = await resp.json();
+    return { joinUrl: data.join_url || ZOOM_FALLBACK_MEETING_URL || null, meetingId: data.id, mode: 'zoom_api' };
+  } catch (_e) {
+    return { joinUrl: ZOOM_FALLBACK_MEETING_URL || null, mode: ZOOM_FALLBACK_MEETING_URL ? 'fallback' : 'none' };
+  }
+}
+
+async function sendCustomConfirmationEmail({ name, email, startDate, endDate, eventLink, eventTypeLabel, zoomJoinUrl }) {
   const transporter = getMailer();
   if (!transporter) return { sent: false, reason: 'smtp_not_configured' };
 
@@ -190,7 +268,7 @@ async function sendCustomConfirmationEmail({ name, email, startDate, endDate, ev
   const endLabel = formatInTimeZone(endDate, TZ, 'h:mm a zzz');
 
   const subject = `Booking confirmed: ${eventTypeLabel || 'Meeting'} · ${startLabel}`;
-  const text = `Hi ${name},\n\nYour booking is confirmed.\n\nMeeting: ${eventTypeLabel || 'Meeting'}\nWhen: ${startLabel} - ${endLabel}\nTimezone: ${TZ}\n\nGoogle Calendar event: ${eventLink || 'Attached via invite'}\n\nThanks,\n${fromName}`;
+  const text = `Hi ${name},\n\nYour booking is confirmed.\n\nMeeting: ${eventTypeLabel || 'Meeting'}\nWhen: ${startLabel} - ${endLabel}\nTimezone: ${TZ}\n${zoomJoinUrl ? `\nZoom link: ${zoomJoinUrl}\n` : ''}\nGoogle Calendar event: ${eventLink || 'Attached via invite'}\n\nThanks,\n${fromName}`;
 
   const html = `
     <p>Hi ${name},</p>
@@ -200,6 +278,7 @@ async function sendCustomConfirmationEmail({ name, email, startDate, endDate, ev
       <strong>When:</strong> ${startLabel} - ${endLabel}<br/>
       <strong>Timezone:</strong> ${TZ}
     </p>
+    ${zoomJoinUrl ? `<p><strong>Zoom link:</strong> <a href="${zoomJoinUrl}">${zoomJoinUrl}</a></p>` : ''}
     <p><a href="${eventLink || '#'}">Open Google Calendar event</a></p>
     <p>Thanks,<br/>${fromName}</p>
   `;
@@ -411,6 +490,7 @@ app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
       booking: {
         eventId: event.data.id,
         htmlLink: event.data.htmlLink,
+        zoomJoinUrl: zoom.joinUrl || null,
         hostTimezone: TZ,
         start: startDate.toISOString(),
         end: endDate.toISOString(),
@@ -537,6 +617,7 @@ app.post('/api/book', async (req, res) => {
       ok: true,
       eventId: event.data.id,
       htmlLink: event.data.htmlLink,
+      zoomJoinUrl: zoom.joinUrl || null,
       customEmail: { sent: 'queued' }
     });
   } catch (e) {
