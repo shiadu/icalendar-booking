@@ -60,6 +60,23 @@ function errorPayload(code, message, details = {}) {
   return { ok: false, code, error: message, details };
 }
 
+function normalizeAuthError(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  if (msg.includes('invalid_grant')) {
+    return {
+      code: 'AUTH_INVALID_GRANT',
+      userMessage: 'Calendar connection expired. Please reconnect Google Calendar credentials in Render environment (refresh token/client credentials).'
+    };
+  }
+  if (msg.includes('unauthorized') || msg.includes('invalid_client')) {
+    return {
+      code: 'AUTH_UNAUTHORIZED',
+      userMessage: 'Calendar authentication failed. Please verify OAuth credentials.'
+    };
+  }
+  return null;
+}
+
 function getAuth() {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, GOOGLE_REFRESH_TOKEN } = process.env;
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI || !GOOGLE_REFRESH_TOKEN) {
@@ -407,6 +424,8 @@ app.post('/api/agent/availability', requireAgentAuth, async (req, res) => {
       }))
     });
   } catch (e) {
+    const authErr = normalizeAuthError(e);
+    if (authErr) return res.status(401).json(errorPayload(authErr.code, authErr.userMessage));
     res.status(500).json(errorPayload('AVAILABILITY_FAILED', e.message || 'Failed to load availability'));
   }
 });
@@ -499,6 +518,8 @@ app.post('/api/agent/book', requireAgentAuth, async (req, res) => {
       customEmail: { sent: 'queued' }
     });
   } catch (e) {
+    const authErr = normalizeAuthError(e);
+    if (authErr) return res.status(401).json(errorPayload(authErr.code, authErr.userMessage));
     res.status(500).json(errorPayload('BOOKING_FAILED', e.message || 'Failed to book event'));
   }
 });
@@ -532,6 +553,8 @@ app.get('/api/availability', async (req, res) => {
       }))
     });
   } catch (e) {
+    const authErr = normalizeAuthError(e);
+    if (authErr) return res.status(401).json({ error: authErr.userMessage, code: authErr.code });
     res.status(500).json({ error: e.message || 'Failed to load availability' });
   }
 });
@@ -621,6 +644,8 @@ app.post('/api/book', async (req, res) => {
       customEmail: { sent: 'queued' }
     });
   } catch (e) {
+    const authErr = normalizeAuthError(e);
+    if (authErr) return res.status(401).json({ error: authErr.userMessage, code: authErr.code });
     res.status(500).json({ error: e.message || 'Failed to book event' });
   }
 });
